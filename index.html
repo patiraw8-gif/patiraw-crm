@@ -202,6 +202,37 @@
                         <h4>Önceliklendirme</h4>
                         <p>Doğru fırsatlara odaklanarak büyüyün.</p>
                     </div>
+                <!-- RECYCLE BIN SECTION -->
+                <section class="chart-card" style="margin-top: 24px; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 24px; background-color: var(--card-bg);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+                        <h3 style="font-size: 16px; margin: 0; display: flex; align-items: center; gap: 8px; font-weight: 800; color: var(--dark-charcoal);">
+                            <i class="fa-solid fa-trash-arrow-up" style="color: var(--primary);"></i> Geri Dönüşüm Kutusu (Çöp Kutusu)
+                        </h3>
+                        <button class="btn btn-secondary" id="btn-clear-trash" style="font-size: 11.5px; padding: 6px 12px; display: none;" type="button">
+                            <i class="fa-solid fa-circle-minus"></i> Çöpü Tamamen Boşalt
+                        </button>
+                    </div>
+                    
+                    <div class="table-responsive" id="trash-table-container" style="display: none; max-height: 250px; overflow-y: auto;">
+                        <table class="customer-table" style="font-size: 13px;">
+                            <thead>
+                                <tr>
+                                    <th>İŞLEM TÜRÜ</th>
+                                    <th>KAYIT ADI / ÜRÜN</th>
+                                    <th>SİLİNME TARİHİ</th>
+                                    <th class="text-center">İŞLEMLER</th>
+                                </tr>
+                            </thead>
+                            <tbody id="trash-table-body">
+                                <!-- Dynamic Trash Items -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="no-data" id="trash-empty-msg" style="padding: 24px 0; text-align: center; color: var(--text-muted);">
+                        <i class="fa-solid fa-trash-can-slash" style="font-size: 28px; color: var(--border-color); display: block; margin-bottom: 8px;"></i>
+                        <p style="font-size: 13px; margin: 0;">Geri dönüşüm kutusu boş. Silinen verileriniz geçici olarak burada saklanır.</p>
+                    </div>
                 </section>
             </div>
 

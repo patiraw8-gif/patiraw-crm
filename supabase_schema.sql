@@ -96,3 +96,28 @@ CREATE POLICY "Herkes not güncelleyebilsin" ON meeting_logs FOR UPDATE TO anon 
 
 DROP POLICY IF EXISTS "Herkes not silebilsin" ON meeting_logs;
 CREATE POLICY "Herkes not silebilsin" ON meeting_logs FOR DELETE TO anon USING (true);
+
+
+-- 4. Geri Dönüşüm Kutusu (Trash Items) Tablosunu Oluştur
+CREATE TABLE IF NOT EXISTS trash_items (
+    id TEXT PRIMARY KEY,
+    item_type TEXT NOT NULL,
+    original_id TEXT NOT NULL,
+    item_data JSONB NOT NULL,
+    deleted_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- RLS Politikalarını Etkinleştir
+ALTER TABLE trash_items ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Herkes cop okuyabilsin" ON trash_items;
+CREATE POLICY "Herkes cop okuyabilsin" ON trash_items FOR SELECT TO anon USING (true);
+
+DROP POLICY IF EXISTS "Herkes cop ekleyebilsin" ON trash_items;
+CREATE POLICY "Herkes cop ekleyebilsin" ON trash_items FOR INSERT TO anon WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Herkes cop güncelleyebilsin" ON trash_items;
+CREATE POLICY "Herkes cop güncelleyebilsin" ON trash_items FOR UPDATE TO anon USING (true);
+
+DROP POLICY IF EXISTS "Herkes cop silebilsin" ON trash_items;
+CREATE POLICY "Herkes cop silebilsin" ON trash_items FOR DELETE TO anon USING (true);

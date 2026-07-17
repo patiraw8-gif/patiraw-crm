@@ -17,6 +17,7 @@ const defaultCustomers = [
 let customers = [];
 let orders = [];
 let meetingLogs = [];
+let trashItems = [];
 let deleteTargetId = null;
 let deleteOrderTargetId = null;
 let currentSort = { key: null, direction: 'asc' };
@@ -259,6 +260,7 @@ async function fetchAllData() {
     }
     await fetchOrders();
     await fetchMeetingLogs();
+    await fetchTrashItems();
     updateNotifications();
     populateCityFilter();
     renderTable();
@@ -407,6 +409,9 @@ function setupEventListeners() {
         currentOrderFilter = e.target.value;
         renderOrdersTable();
     });
+
+    const btnClearTrash = document.getElementById("btn-clear-trash");
+    if (btnClearTrash) btnClearTrash.addEventListener("click", clearTrash);
 }
 
 // ==========================================
@@ -712,10 +717,10 @@ window.deleteCustomerClick = function(id) { deleteTargetId = id; confirmModal.cl
 
 async function deleteCustomer() {
     if (deleteTargetId) {
-        if (isSupabaseActive && supabaseClient) {
-            try { const { error } = await supabaseClient.from("customers").delete().eq("id", deleteTargetId); if (error) throw error; showToast("Kayıt silindi.", "error"); await fetchAllData(); }
-            catch (error) { showToast("Silme başarısız!", "error"); }
-        } else { customers = customers.filter(c => c.id !== deleteTargetId); saveLocalData(); populateCityFilter(); renderTable(); updateStats(); refreshAllDashboardPanels(); showToast("Kayıt silindi.", "error"); }
+        const customer = customers.find(c => c.id === deleteTargetId);
+        if (customer) {
+            await moveItemToTrash('customer', deleteTargetId, customer);
+        }
         deleteTargetId = null;
     }
     confirmModal.classList.remove("open");
@@ -1616,23 +1621,9 @@ window.editOrderClick = function(id) {
 
 window.deleteOrderClick = async function(id) {
     if (!confirm("Bu sipariş kaydını silmek istediğinize emin misiniz?")) return;
-
-    if (isSupabaseActive && supabaseClient) {
-        try {
-            const { error } = await supabaseClient.from("orders").delete().eq("id", id);
-            if (error) throw error;
-            showToast("Sipariş silindi.", "error");
-            addLog("Sipariş kaydı silindi.");
-            await fetchAllData();
-        } catch (error) {
-            console.error("Delete order error:", error);
-            showToast("Sipariş silinemedi!", "error");
-        }
-    } else {
-        orders = orders.filter(o => o.id !== id);
-        saveLocalOrders();
-        addLog("Sipariş kaydı silindi (Yerel).");
-        await fetchAllData();
+    const order = orders.find(o => o.id === id);
+    if (order) {
+        await moveItemToTrash('order', id, order);
     }
 };
 
@@ -1817,3 +1808,282 @@ window.openDossierModal = function(customerId) {
 window.closeDossierModal = function() {
     document.getElementById("customer-dossier-modal").classList.remove("open");
 };
+
+// ==========================================
+// 26. RECYCLE BIN SYSTEM (GERİ DÖNÜŞÜM KUTUSU)
+// ==========================================
+
+async function fetchTrashItems() {
+    if (isSupabaseActive && supabaseClient) {
+        try {
+            const { data, error } = await supabaseClient.from("trash_items").select("*").order("deleted_at", { ascending: false });
+            if (error) throw error;
+            trashItems = data.map(dbTrash => ({
+                id: dbTrash.id,
+                itemType: dbTrash.item_type,
+                originalId: dbTrash.original_id,
+                itemData: typeof dbTrash.item_data === 'string' ? JSON.parse(dbTrash.item_data) : dbTrash.item_data,
+                deletedAt: dbTrash.deleted_at
+            }));
+            saveLocalTrash();
+        } catch (error) {
+            console.error("Supabase fetch trash error:", error);
+            loadLocalTrash();
+        }
+    } else {
+        loadLocalTrash();
+    }
+    renderTrashTable();
+}
+
+function loadLocalTrash() {
+    const saved = localStorage.getItem("pati_raw_crm_trash");
+    if (saved) {
+        try { trashItems = JSON.parse(saved); } catch (e) { trashItems = []; }
+    } else {
+        trashItems = [];
+    }
+}
+
+function saveLocalTrash() {
+    localStorage.setItem("pati_raw_crm_trash", JSON.stringify(trashItems));
+}
+
+// Veriyi Çöp Kutusuna Taşıma
+async function moveItemToTrash(itemType, originalId, itemData) {
+    const trashId = Date.now().toString();
+    const deletedAtStr = new Date().toISOString();
+    
+    let displayName = "";
+    if (itemType === 'customer') {
+        displayName = itemData.businessName;
+    } else if (itemType === 'order') {
+        const customer = customers.find(c => c.id === itemData.customerId);
+        const customerName = customer ? customer.businessName : "Bilinmeyen Müşteri";
+        displayName = `${customerName} - ${itemData.productName}`;
+    }
+
+    if (isSupabaseActive && supabaseClient) {
+        try {
+            const { error: insErr } = await supabaseClient.from("trash_items").insert({
+                id: trashId,
+                item_type: itemType,
+                original_id: originalId,
+                item_data: itemData,
+                deleted_at: deletedAtStr
+            });
+            if (insErr) throw insErr;
+
+            const tableName = itemType === 'customer' ? 'customers' : 'orders';
+            const { error: delErr } = await supabaseClient.from(tableName).delete().eq("id", originalId);
+            if (delErr) throw delErr;
+
+            showToast("Veri çöp kutusuna taşındı. Dashboard'dan geri alabilirsiniz.");
+            if (typeof addLog === 'function') addLog(`Veri silindi ve çöpe taşındı: ${displayName}`);
+            await fetchAllData();
+        } catch (error) {
+            console.error("Move to trash error:", error);
+            showToast("Silme işlemi başarısız!", "error");
+        }
+    } else {
+        trashItems.push({
+            id: trashId,
+            itemType: itemType,
+            originalId: originalId,
+            itemData: itemData,
+            deletedAt: deletedAtStr
+        });
+        saveLocalTrash();
+
+        if (itemType === 'customer') {
+            customers = customers.filter(c => c.id !== originalId);
+            saveLocalData();
+            if (typeof addLog === 'function') addLog(`Müşteri silindi ve çöpe taşındı (Yerel): ${displayName}`);
+        } else if (itemType === 'order') {
+            orders = orders.filter(o => o.id !== originalId);
+            saveLocalOrders();
+            if (typeof addLog === 'function') addLog(`Sipariş silindi ve çöpe taşındı (Yerel): ${displayName}`);
+        }
+
+        showToast("Veri yerel çöp kutusuna taşındı.");
+        await fetchAllData();
+    }
+}
+
+// Çöpteki Verileri Listeleme
+function renderTrashTable() {
+    const tbody = document.getElementById("trash-table-body");
+    const container = document.getElementById("trash-table-container");
+    const emptyMsg = document.getElementById("trash-empty-msg");
+    const clearBtn = document.getElementById("btn-clear-trash");
+    if (!tbody) return;
+
+    tbody.innerHTML = "";
+
+    if (trashItems.length === 0) {
+        if (container) container.style.display = "none";
+        if (emptyMsg) emptyMsg.style.display = "block";
+        if (clearBtn) clearBtn.style.display = "none";
+        return;
+    }
+
+    if (container) container.style.display = "block";
+    if (emptyMsg) emptyMsg.style.display = "none";
+    if (clearBtn) clearBtn.style.display = "inline-block";
+
+    trashItems.forEach(t => {
+        const row = document.createElement("tr");
+        const typeBadge = t.itemType === 'customer' ? '<span class="status-badge aktif" style="font-size:9.5px; padding:1px 6px; min-width:auto;">Müşteri</span>' : '<span class="status-badge beklemede" style="font-size:9.5px; padding:1px 6px; min-width:auto;">Sipariş</span>';
+        
+        let nameDetail = "";
+        if (t.itemType === 'customer') {
+            nameDetail = t.itemData.businessName;
+        } else if (t.itemType === 'order') {
+            const customer = customers.find(c => c.id === t.itemData.customerId);
+            const customerName = customer ? customer.businessName : "Bilinmeyen Müşteri";
+            nameDetail = `${customerName} (Ürün: ${t.itemData.productName})`;
+        }
+
+        const dateStr = t.deletedAt ? new Date(t.deletedAt).toLocaleString('tr-TR') : "-";
+
+        row.innerHTML = `
+            <td>${typeBadge}</td>
+            <td style="font-weight:600;">${nameDetail}</td>
+            <td>${dateStr}</td>
+            <td class="text-center">
+                <div class="action-buttons" style="justify-content:center;">
+                    <button class="action-btn edit" onclick="restoreTrashItem('${t.id}')" title="Geri Al (Kurtar)" style="background-color:#ecfdf5; color:#059669; border-color:#a7f3d0;"><i class="fa-solid fa-rotate-left"></i> Kurtar</button>
+                    <button class="action-btn delete" onclick="deleteTrashItemPermanently('${t.id}')" title="Kalıcı Olarak Sil" style="background-color:#fef2f2; color:#dc2626; border-color:#fca5a5;"><i class="fa-solid fa-trash"></i> Kalıcı Sil</button>
+                </div>
+            </td>`;
+        tbody.appendChild(row);
+    });
+}
+
+// Veriyi Kurtarma
+window.restoreTrashItem = async function(trashId) {
+    const item = trashItems.find(t => t.id === trashId);
+    if (!item) return;
+
+    let displayName = "";
+    if (item.itemType === 'customer') displayName = item.itemData.businessName;
+    else if (item.itemType === 'order') displayName = item.itemData.productName;
+
+    if (isSupabaseActive && supabaseClient) {
+        try {
+            const tableName = item.itemType === 'customer' ? 'customers' : 'orders';
+            
+            let dbData = {};
+            if (item.itemType === 'customer') {
+                dbData = {
+                    id: item.originalId,
+                    business_name: item.itemData.businessName,
+                    contact_person: item.itemData.contactPerson,
+                    phone: item.itemData.phone,
+                    city: item.itemData.city,
+                    last_contact_date: item.itemData.lastContactDate,
+                    monthly_consumption: item.itemData.monthlyConsumption,
+                    sample_given: item.itemData.sampleGiven,
+                    recall_date: item.itemData.recallDate,
+                    status: item.itemData.status,
+                    last_contact_note: item.itemData.lastContactNote,
+                    tags: item.itemData.tags
+                };
+            } else if (item.itemType === 'order') {
+                dbData = {
+                    id: item.originalId,
+                    customer_id: item.itemData.customerId,
+                    product_name: item.itemData.productName,
+                    quantity: item.itemData.quantity,
+                    total_amount: item.itemData.totalAmount,
+                    status: item.itemData.status,
+                    order_date: item.itemData.orderDate
+                };
+            }
+
+            const { error: insErr } = await supabaseClient.from(tableName).insert(dbData);
+            if (insErr) throw insErr;
+
+            const { error: delErr } = await supabaseClient.from("trash_items").delete().eq("id", trashId);
+            if (delErr) throw delErr;
+
+            showToast("Veri başarıyla geri yüklendi!");
+            if (typeof addLog === 'function') addLog(`Veri çöp kutusundan geri yüklendi: ${displayName}`);
+            await fetchAllData();
+        } catch (error) {
+            console.error("Restore trash item error:", error);
+            showToast("Geri yükleme başarısız!", "error");
+        }
+    } else {
+        if (item.itemType === 'customer') {
+            customers.push(item.itemData);
+            saveLocalData();
+            if (typeof addLog === 'function') addLog(`Müşteri geri yüklendi (Yerel): ${displayName}`);
+        } else if (item.itemType === 'order') {
+            orders.push(item.itemData);
+            saveLocalOrders();
+            if (typeof addLog === 'function') addLog(`Sipariş geri yüklendi (Yerel): ${displayName}`);
+        }
+
+        trashItems = trashItems.filter(t => t.id !== trashId);
+        saveLocalTrash();
+
+        showToast("Veri başarıyla geri yüklendi!");
+        await fetchAllData();
+    }
+};
+
+// Kalıcı Olarak Silme
+window.deleteTrashItemPermanently = async function(trashId) {
+    if (!confirm("Bu kaydı kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz!")) return;
+    
+    const item = trashItems.find(t => t.id === trashId);
+    let displayName = "";
+    if (item) {
+        if (item.itemType === 'customer') displayName = item.itemData.businessName;
+        else if (item.itemType === 'order') displayName = item.itemData.productName;
+    }
+
+    if (isSupabaseActive && supabaseClient) {
+        try {
+            const { error } = await supabaseClient.from("trash_items").delete().eq("id", trashId);
+            if (error) throw error;
+            showToast("Kayıt kalıcı olarak silindi.", "error");
+            if (typeof addLog === 'function') addLog(`Kayıt kalıcı olarak silindi: ${displayName}`);
+            await fetchAllData();
+        } catch (error) {
+            console.error("Delete trash item permanently error:", error);
+            showToast("Kalıcı silme başarısız!", "error");
+        }
+    } else {
+        trashItems = trashItems.filter(t => t.id !== trashId);
+        saveLocalTrash();
+        showToast("Kayıt kalıcı olarak silindi.", "error");
+        if (typeof addLog === 'function') addLog(`Kayıt kalıcı olarak silindi (Yerel): ${displayName}`);
+        await fetchAllData();
+    }
+};
+
+// Çöpü Tamamen Boşaltma
+async function clearTrash() {
+    if (!confirm("Tüm çöp kutusunu kalıcı olarak boşaltmak istediğinize emin misiniz? Kurtarılacak hiçbir veri kalmayacaktır!")) return;
+
+    if (isSupabaseActive && supabaseClient) {
+        try {
+            const { error } = await supabaseClient.from("trash_items").delete().neq("id", "0");
+            if (error) throw error;
+            showToast("Çöp kutusu tamamen temizlendi.", "error");
+            if (typeof addLog === 'function') addLog("Çöp kutusu tamamen temizlendi.");
+            await fetchAllData();
+        } catch (error) {
+            console.error("Clear trash error:", error);
+            showToast("Çöp kutusu temizlenemedi!", "error");
+        }
+    } else {
+        trashItems = [];
+        saveLocalTrash();
+        showToast("Çöp kutusu tamamen temizlendi.", "error");
+        if (typeof addLog === 'function') addLog("Çöp kutusu tamamen temizlendi (Yerel).");
+        await fetchAllData();
+    }
+}
