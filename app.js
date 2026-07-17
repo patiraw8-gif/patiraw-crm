@@ -15,9 +15,13 @@ const defaultCustomers = [
 
 // 2. Application State
 let customers = [];
+let orders = [];
 let deleteTargetId = null;
+let deleteOrderTargetId = null;
 let currentSort = { key: null, direction: 'asc' };
 let currentRecallFilter = 'all';
+let currentOrderFilter = '';
+let currentOrderSearch = '';
 
 // Chart.js Instances
 let cityChartInstance = null;
@@ -76,6 +80,7 @@ const tabHeaderDetails = {
     "tab-customers": { title: "Müşteri Listesi", subtitle: "Tüm müşteri kayıtlarını listeleyin, arayın ve düzenleyin." },
     "tab-timeline": { title: "Görüşme Geçmişi", subtitle: "Müşterilerinizle yapılan son görüşme notları ve tarihleri." },
     "tab-samples": { title: "Numune Takibi", subtitle: "Verilen numuneler ve tüketim potansiyelleri analizi." },
+    "tab-orders": { title: "Sipariş Takibi", subtitle: "Yapılan ürün satışlarını, sipariş tutarlarını ve ödeme durumlarını yönetin." },
     "tab-planner": { title: "Arama Planlayıcı", subtitle: "Geri arama tarihleri planlanmış ve gecikmiş müşteriler." },
     "tab-funnel": { title: "Satış Hunisi", subtitle: "Müşteri dönüşüm oranları analizi." },
     "tab-admin": { title: "Yönetici Paneli", subtitle: "Kullanıcı hesap bilgilerini, veri yedekleme süreçlerini ve sistem loglarını yönetin." },
@@ -239,7 +244,8 @@ async function fetchAllData() {
                 sampleGiven: dbCust.sample_given,
                 recallDate: dbCust.recall_date,
                 status: dbCust.status,
-                lastContactNote: dbCust.last_contact_note || ""
+                lastContactNote: dbCust.last_contact_note || "",
+                tags: dbCust.tags || ""
             }));
         } catch (error) {
             console.error("Supabase fetch failed:", error);
@@ -249,6 +255,8 @@ async function fetchAllData() {
     } else {
         loadLocalData();
     }
+    await fetchOrders();
+    updateNotifications();
     populateCityFilter();
     renderTable();
     updateStats();
@@ -292,6 +300,7 @@ function setupTabNavigation() {
             if (targetTabId === 'tab-dashboard') updateCharts();
             else if (targetTabId === 'tab-timeline') buildMeetingsTimeline();
             else if (targetTabId === 'tab-samples') buildSamplesDashboard();
+            else if (targetTabId === 'tab-orders') renderOrdersPanel();
             else if (targetTabId === 'tab-planner') filterRecallList(currentRecallFilter);
             else if (targetTabId === 'tab-funnel') buildConversionFunnel();
             else if (targetTabId === 'tab-admin') renderAdminPanel();
@@ -318,6 +327,16 @@ function setupEventListeners() {
         if (e.target === confirmModal) confirmModal.classList.remove("open");
         if (e.target === benefitModal) benefitModal.classList.remove("open");
         if (e.target === quickMeetingModal) closeQuickMeetingModal();
+        
+        const orderMod = document.getElementById("order-modal");
+        if (e.target === orderMod) closeOrderModal();
+        
+        // Close notification dropdown when clicked outside
+        const bellDropdown = document.getElementById("bell-dropdown");
+        const bellWrapper = document.getElementById("bell-wrapper");
+        if (bellDropdown && bellDropdown.classList.contains("show") && bellWrapper && !bellWrapper.contains(e.target)) {
+            bellDropdown.classList.remove("show");
+        }
     });
     btnExport.addEventListener("click", exportToCSV);
     document.querySelectorAll(".customer-table th[data-sort]").forEach(th => {
@@ -353,6 +372,35 @@ function setupEventListeners() {
 
     const btnResetDefaults = document.getElementById("btn-reset-defaults");
     if (btnResetDefaults) btnResetDefaults.addEventListener("click", handleResetDefaults);
+
+    // Notification Bell Listener
+    const btnBell = document.getElementById("btn-bell");
+    const bellDropdown = document.getElementById("bell-dropdown");
+    if (btnBell && bellDropdown) {
+        btnBell.addEventListener("click", (e) => {
+            e.stopPropagation();
+            bellDropdown.classList.toggle("show");
+        });
+    }
+
+    // Orders Listeners
+    const btnAddOrder = document.getElementById("btn-add-order");
+    if (btnAddOrder) btnAddOrder.addEventListener("click", () => openOrderModal());
+
+    const orderForm = document.getElementById("order-form");
+    if (orderForm) orderForm.addEventListener("submit", handleOrderFormSubmit);
+
+    const orderSearchInput = document.getElementById("order-search-input");
+    if (orderSearchInput) orderSearchInput.addEventListener("input", (e) => {
+        currentOrderSearch = e.target.value;
+        renderOrdersTable();
+    });
+
+    const orderFilterStatus = document.getElementById("order-filter-status");
+    if (orderFilterStatus) orderFilterStatus.addEventListener("change", (e) => {
+        currentOrderFilter = e.target.value;
+        renderOrdersTable();
+    });
 }
 
 // ==========================================
@@ -392,11 +440,24 @@ function populateCityFilter() {
 // 9. TABLE RENDERING, FILTERING & SORTING
 // ==========================================
 function getFilteredCustomers() {
-    const searchVal = normalizeTurkish(searchInput.value);
+    const searchVal = normalizeTurkish(searchInput.value).trim();
     const cityVal = filterCity.value;
     const statusVal = filterStatus.value;
+    
+    let isTagSearch = searchVal.startsWith('#');
+    let cleanQuery = isTagSearch ? searchVal.substring(1).trim() : searchVal;
+
     let result = customers.filter(c => {
-        const matchesSearch = normalizeTurkish(c.businessName).includes(searchVal) || normalizeTurkish(c.contactPerson).includes(searchVal) || c.phone.includes(searchVal);
+        if (isTagSearch) {
+            if (!c.tags) return false;
+            return c.tags.split(",").map(t => normalizeTurkish(t.trim())).includes(cleanQuery);
+        }
+        
+        const matchesSearch = normalizeTurkish(c.businessName).includes(searchVal) || 
+                              normalizeTurkish(c.contactPerson).includes(searchVal) || 
+                              c.phone.includes(searchVal) ||
+                              (c.tags && normalizeTurkish(c.tags).includes(searchVal));
+                              
         return matchesSearch && (cityVal === "" || c.city === cityVal) && (statusVal === "" || c.status === statusVal);
     });
     if (currentSort.key) {
@@ -420,8 +481,15 @@ function renderTable() {
         const row = document.createElement("tr");
         const sampleIcon = c.sampleGiven ? '<span class="sample-icon yes"><i class="fa-solid fa-circle-check"></i> Evet</span>' : '<span class="sample-icon no"><i class="fa-solid fa-circle-xmark"></i> Hayır</span>';
         const statusClass = c.status.toLowerCase();
+        
+        let tagsHtml = "";
+        if (c.tags) {
+            const tagList = c.tags.split(",").map(t => t.trim()).filter(t => t.length > 0);
+            tagsHtml = `<div class="tag-container">` + tagList.map(t => `<span class="tag-pill"><i class="fa-solid fa-tag"></i> ${t}</span>`).join("") + `</div>`;
+        }
+
         row.innerHTML = `
-            <td style="font-weight: 700;">${c.businessName}</td>
+            <td style="font-weight: 700;">${c.businessName} ${tagsHtml}</td>
             <td>${c.contactPerson}</td>
             <td>${c.phone}</td>
             <td>${c.city}</td>
@@ -441,7 +509,10 @@ function renderTable() {
             const card = document.createElement("div");
             card.className = "customer-mobile-card";
             card.innerHTML = `
-                <div class="mobile-card-header"><div class="mobile-card-title">${c.businessName}</div><span class="status-badge ${statusClass}">${c.status}</span></div>
+                <div class="mobile-card-header">
+                    <div class="mobile-card-title">${c.businessName} ${tagsHtml}</div>
+                    <span class="status-badge ${statusClass}">${c.status}</span>
+                </div>
                 <div class="mobile-card-body">
                     <div class="mobile-field"><span class="mobile-field-label">Yetkili</span><span class="mobile-field-value">${c.contactPerson}</span></div>
                     <div class="mobile-field"><span class="mobile-field-label">Telefon</span><span class="mobile-field-value">${c.phone}</span></div>
@@ -475,6 +546,11 @@ function updateStats() {
     statPending.textContent = customers.filter(c => c.status === "Beklemede").length;
     const totalCons = customers.reduce((sum, c) => sum + (Number(c.monthlyConsumption) || 0), 0);
     statConsumption.textContent = `${totalCons.toLocaleString('tr-TR')} kg`;
+    
+    // Toplam Ciro Hesaplama
+    const totalRev = orders.filter(o => o.status !== "İptal").reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
+    const revEl = document.getElementById("stat-total-revenue");
+    if (revEl) revEl.textContent = `${totalRev.toLocaleString('tr-TR')} ₺`;
 }
 
 function refreshAllDashboardPanels() { updateCharts(); buildMeetingsTimeline(); buildSamplesDashboard(); filterRecallList(currentRecallFilter); buildConversionFunnel(); }
@@ -486,6 +562,7 @@ function openCustomerModal(customer = null) {
     customerForm.reset();
     document.getElementById("customer-id").value = "";
     document.getElementById("input-last-note").value = "";
+    document.getElementById("input-tags").value = "";
     if (customer) {
         modalTitle.textContent = "Müşteri Kaydını Düzenle";
         document.getElementById("customer-id").value = customer.id;
@@ -499,6 +576,7 @@ function openCustomerModal(customer = null) {
         document.getElementById("input-status").value = customer.status;
         document.getElementById("input-sample-given").checked = customer.sampleGiven;
         document.getElementById("input-last-note").value = customer.lastContactNote || "";
+        document.getElementById("input-tags").value = customer.tags || "";
     } else {
         modalTitle.textContent = "Yeni Müşteri Kaydı";
         document.getElementById("input-status").value = "Aktif";
@@ -521,26 +599,52 @@ async function handleFormSubmit(e) {
         recallDate: document.getElementById("input-recall-date").value || null,
         status: document.getElementById("input-status").value,
         sampleGiven: document.getElementById("input-sample-given").checked,
-        lastContactNote: document.getElementById("input-last-note").value.trim()
+        lastContactNote: document.getElementById("input-last-note").value.trim(),
+        tags: document.getElementById("input-tags").value.trim()
     };
 
     if (isSupabaseActive && supabaseClient) {
         try {
-            const dbData = { business_name: dataObj.businessName, contact_person: dataObj.contactPerson, phone: dataObj.phone, city: dataObj.city, last_contact_date: dataObj.lastContactDate, monthly_consumption: dataObj.monthlyConsumption, recall_date: dataObj.recallDate, status: dataObj.status, sample_given: dataObj.sampleGiven, last_contact_note: dataObj.lastContactNote };
+            const dbData = { 
+                business_name: dataObj.businessName, 
+                contact_person: dataObj.contactPerson, 
+                phone: dataObj.phone, 
+                city: dataObj.city, 
+                last_contact_date: dataObj.lastContactDate, 
+                monthly_consumption: dataObj.monthlyConsumption, 
+                recall_date: dataObj.recallDate, 
+                status: dataObj.status, 
+                sample_given: dataObj.sampleGiven, 
+                last_contact_note: dataObj.lastContactNote,
+                tags: dataObj.tags
+            };
             if (id) {
                 const { error } = await supabaseClient.from("customers").update(dbData).eq("id", id);
                 if (error) throw error;
                 showToast("Kayıt başarıyla güncellendi.");
+                if (typeof addLog === 'function') addLog(`Müşteri kaydı güncellendi: ${dataObj.businessName}`);
             } else {
                 const { error } = await supabaseClient.from("customers").insert({ id: Date.now().toString(), ...dbData });
                 if (error) throw error;
                 showToast("Yeni kayıt başarıyla eklendi.");
+                if (typeof addLog === 'function') addLog(`Yeni müşteri eklendi: ${dataObj.businessName}`);
             }
             await fetchAllData();
         } catch (error) { console.error("Save Error:", error); showToast("Kayıt edilemedi!", "error"); }
     } else {
-        if (id) { const idx = customers.findIndex(c => c.id === id); if (idx !== -1) { customers[idx] = { id, ...dataObj }; showToast("Kayıt güncellendi."); } }
-        else { customers.push({ id: Date.now().toString(), ...dataObj }); showToast("Yeni kayıt eklendi."); }
+        if (id) { 
+            const idx = customers.findIndex(c => c.id === id); 
+            if (idx !== -1) { 
+                customers[idx] = { id, ...dataObj }; 
+                showToast("Kayıt güncellendi."); 
+                if (typeof addLog === 'function') addLog(`Müşteri kaydı güncellendi (Yerel): ${dataObj.businessName}`);
+            } 
+        }
+        else { 
+            customers.push({ id: Date.now().toString(), ...dataObj }); 
+            showToast("Yeni kayıt eklendi."); 
+            if (typeof addLog === 'function') addLog(`Yeni müşteri eklendi (Yerel): ${dataObj.businessName}`);
+        }
         saveLocalData(); populateCityFilter(); renderTable(); updateStats(); refreshAllDashboardPanels();
     }
     closeCustomerModal();
@@ -1106,3 +1210,319 @@ async function handleResetDefaults() {
     await fetchAllData();
     renderAdminPanel();
 }
+
+// ==========================================
+// 22. NOTIFICATION SYSTEM (BİLDİRİM PANELİ)
+// ==========================================
+function updateNotifications() {
+    const badge = document.getElementById("bell-badge");
+    const list = document.getElementById("bell-dropdown-list");
+    if (!badge || !list) return;
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const notifications = [];
+
+    // Geciken ve bugünkü aramaları tarayalım
+    customers.forEach(c => {
+        if (c.recallDate && c.status !== "Olumsuz") {
+            if (c.recallDate < todayStr) {
+                notifications.push({
+                    id: c.id,
+                    type: 'overdue',
+                    title: 'Gecikmiş Arama!',
+                    businessName: c.businessName,
+                    desc: `${c.contactPerson} (${c.phone}) aranacaktı. Gecikme Tarihi: ${formatDate(c.recallDate)}`,
+                });
+            } else if (c.recallDate === todayStr) {
+                notifications.push({
+                    id: c.id,
+                    type: 'today',
+                    title: 'Bugün Aranacak',
+                    businessName: c.businessName,
+                    desc: `${c.contactPerson} (${c.phone}) aranacak. Geri Arama Günü!`,
+                });
+            }
+        }
+    });
+
+    // Badge güncelleme
+    if (notifications.length > 0) {
+        badge.textContent = notifications.length;
+        badge.style.display = "flex";
+    } else {
+        badge.style.display = "none";
+    }
+
+    // Listeyi güncelleme
+    list.innerHTML = "";
+    if (notifications.length === 0) {
+        list.innerHTML = `
+            <div class="bell-empty-state">
+                <i class="fa-solid fa-circle-check"></i>
+                <strong>Harika!</strong>
+                <span>Bugün için planlanan veya gecikmiş geri arama bulunmuyor.</span>
+            </div>`;
+        return;
+    }
+
+    notifications.forEach(n => {
+        const item = document.createElement("div");
+        item.className = "bell-item";
+        const color = n.type === 'overdue' ? 'var(--status-negative-bg)' : 'var(--status-pending-bg)';
+        
+        item.innerHTML = `
+            <div class="bell-item-title">
+                <span>${n.businessName}</span>
+                <span class="status-badge" style="background-color:${color}; color:white; font-size:9px; padding:2px 6px; min-width:auto; border-radius:4px;">${n.title}</span>
+            </div>
+            <div class="bell-item-desc">${n.desc}</div>
+            <div class="bell-item-action">
+                <button class="btn btn-primary" onclick="quickCallDoneFromNotification('${n.id}', event)" style="font-size:10px; padding:4px 8px;">
+                    <i class="fa-solid fa-phone"></i> Arandı İşaretle
+                </button>
+            </div>`;
+        list.appendChild(item);
+    });
+}
+
+// Bildirim içinden arandı işaretleme
+window.quickCallDoneFromNotification = async function(id, event) {
+    if (event) event.stopPropagation();
+    await quickCallDone(id);
+    document.getElementById("bell-dropdown").classList.remove("show");
+};
+
+// ==========================================
+// 23. ORDERS MODULE (SİPARİŞ TAKİBİ)
+// ==========================================
+
+// Siparişleri Yükleme
+async function fetchOrders() {
+    if (isSupabaseActive && supabaseClient) {
+        try {
+            const { data, error } = await supabaseClient.from("orders").select("*").order("order_date", { ascending: false });
+            if (error) throw error;
+            orders = data.map(dbOrder => ({
+                id: dbOrder.id,
+                customerId: dbOrder.customer_id,
+                productName: dbOrder.product_name,
+                quantity: Number(dbOrder.quantity) || 1,
+                totalAmount: Number(dbOrder.total_amount) || 0,
+                status: dbOrder.status || 'Ödendi',
+                orderDate: dbOrder.order_date
+            }));
+        } catch (error) {
+            console.error("Supabase orders fetch error:", error);
+            loadLocalOrders();
+        }
+    } else {
+        loadLocalOrders();
+    }
+}
+
+function loadLocalOrders() {
+    const saved = localStorage.getItem("pati_raw_crm_orders");
+    if (saved) {
+        try { orders = JSON.parse(saved); } catch (e) { orders = []; }
+    } else {
+        orders = [];
+    }
+}
+
+function saveLocalOrders() {
+    localStorage.setItem("pati_raw_crm_orders", JSON.stringify(orders));
+}
+
+// Sipariş Paneli Sekmesi Açıldığında
+function renderOrdersPanel() {
+    // Müşteri seçimi dropdown'ını doldur
+    const select = document.getElementById("order-customer-id");
+    if (select) {
+        select.innerHTML = '<option value="">Müşteri seçin...</option>';
+        customers.forEach(c => {
+            const o = document.createElement("option");
+            o.value = c.id;
+            o.textContent = c.businessName;
+            select.appendChild(o);
+        });
+    }
+    renderOrdersTable();
+}
+
+// Siparişleri Listeleme
+function renderOrdersTable() {
+    const tbody = document.getElementById("order-table-body");
+    const noData = document.getElementById("order-no-data-msg");
+    if (!tbody) return;
+
+    tbody.innerHTML = "";
+    
+    // Filtreleme
+    const searchVal = normalizeTurkish(currentOrderSearch);
+    let filtered = orders.filter(o => {
+        const customer = customers.find(c => c.id === o.customerId);
+        const custName = customer ? customer.businessName : "Bilinmeyen Müşteri";
+        
+        const matchesSearch = normalizeTurkish(custName).includes(searchVal) || normalizeTurkish(o.productName).includes(searchVal);
+        const matchesStatus = currentOrderFilter === "" || o.status === currentOrderFilter;
+        return matchesSearch && matchesStatus;
+    });
+
+    if (filtered.length === 0) {
+        if (noData) noData.style.display = "block";
+        return;
+    } else {
+        if (noData) noData.style.display = "none";
+    }
+
+    filtered.forEach(o => {
+        const customer = customers.find(c => c.id === o.customerId);
+        const custName = customer ? customer.businessName : "Bilinmeyen Müşteri";
+        const row = document.createElement("tr");
+
+        let statusColor = "aktif"; // green
+        if (o.status === "Beklemede") statusColor = "beklemede"; // amber
+        else if (o.status === "İptal") statusColor = "olumsuz"; // red
+
+        row.innerHTML = `
+            <td style="font-weight:700;">${custName}</td>
+            <td>${o.productName}</td>
+            <td class="text-right">${o.quantity} Adet</td>
+            <td class="text-right" style="font-weight:600;">${o.totalAmount.toLocaleString('tr-TR')} ₺</td>
+            <td class="text-center">${formatDate(o.orderDate)}</td>
+            <td class="text-center"><span class="status-badge ${statusColor}">${o.status}</span></td>
+            <td class="text-center">
+                <div class="action-buttons">
+                    <button class="action-btn edit" onclick="editOrderClick('${o.id}')" title="Düzenle"><i class="fa-solid fa-pen-to-square"></i></button>
+                    <button class="action-btn delete" onclick="deleteOrderClick('${o.id}')" style="background-color:#fee2e2; color:var(--status-negative-bg);" title="Sil"><i class="fa-solid fa-trash-can"></i></button>
+                </div>
+            </td>`;
+        tbody.appendChild(row);
+    });
+}
+
+// Modal Yönetimi
+window.openOrderModal = function(order = null) {
+    const form = document.getElementById("order-form");
+    if (form) form.reset();
+    
+    // Müşterileri yükle
+    const select = document.getElementById("order-customer-id");
+    if (select) {
+        select.innerHTML = '<option value="">Müşteri seçin...</option>';
+        customers.forEach(c => {
+            const o = document.createElement("option");
+            o.value = c.id;
+            o.textContent = c.businessName;
+            select.appendChild(o);
+        });
+    }
+
+    document.getElementById("order-id").value = "";
+    document.getElementById("order-date").value = new Date().toISOString().slice(0, 10);
+    
+    if (order) {
+        document.getElementById("order-modal-title").textContent = "Siparişi Düzenle";
+        document.getElementById("order-id").value = order.id;
+        document.getElementById("order-customer-id").value = order.customerId;
+        document.getElementById("order-product-name").value = order.productName;
+        document.getElementById("order-quantity").value = order.quantity;
+        document.getElementById("order-total-amount").value = order.totalAmount;
+        document.getElementById("order-date").value = order.orderDate;
+        document.getElementById("order-status").value = order.status;
+    } else {
+        document.getElementById("order-modal-title").textContent = "Yeni Sipariş Kaydet";
+    }
+
+    document.getElementById("order-modal").classList.add("open");
+};
+
+window.closeOrderModal = function() {
+    document.getElementById("order-modal").classList.remove("open");
+};
+
+// Form Kaydetme
+async function handleOrderFormSubmit(e) {
+    e.preventDefault();
+    const id = document.getElementById("order-id").value;
+    const orderDataObj = {
+        customerId: document.getElementById("order-customer-id").value,
+        productName: document.getElementById("order-product-name").value,
+        quantity: parseInt(document.getElementById("order-quantity").value) || 1,
+        totalAmount: parseFloat(document.getElementById("order-total-amount").value) || 0,
+        orderDate: document.getElementById("order-date").value,
+        status: document.getElementById("order-status").value
+    };
+
+    if (isSupabaseActive && supabaseClient) {
+        try {
+            const dbData = {
+                customer_id: orderDataObj.customerId,
+                product_name: orderDataObj.productName,
+                quantity: orderDataObj.quantity,
+                total_amount: orderDataObj.totalAmount,
+                order_date: orderDataObj.orderDate,
+                status: orderDataObj.status
+            };
+
+            if (id) {
+                const { error } = await supabaseClient.from("orders").update(dbData).eq("id", id);
+                if (error) throw error;
+                showToast("Sipariş güncellendi.");
+                addLog(`Sipariş güncellendi. Tutar: ${orderDataObj.totalAmount} TL`);
+            } else {
+                const { error } = await supabaseClient.from("orders").insert({ id: Date.now().toString(), ...dbData });
+                if (error) throw error;
+                showToast("Sipariş eklendi.");
+                addLog(`Yeni sipariş kaydedildi. Tutar: ${orderDataObj.totalAmount} TL`);
+            }
+            await fetchAllData();
+        } catch (error) {
+            console.error("Order save error:", error);
+            showToast("Sipariş kaydedilemedi!", "error");
+        }
+    } else {
+        if (id) {
+            const idx = orders.findIndex(o => o.id === id);
+            if (idx !== -1) {
+                orders[idx] = { id, ...orderDataObj };
+                showToast("Sipariş güncellendi.");
+                addLog(`Sipariş güncellendi (Yerel). Tutar: ${orderDataObj.totalAmount} TL`);
+            }
+        } else {
+            orders.push({ id: Date.now().toString(), ...orderDataObj });
+            showToast("Sipariş eklendi.");
+            addLog(`Yeni sipariş kaydedildi (Yerel). Tutar: ${orderDataObj.totalAmount} TL`);
+        }
+        saveLocalOrders();
+        await fetchAllData();
+    }
+    closeOrderModal();
+}
+
+window.editOrderClick = function(id) {
+    const o = orders.find(ord => ord.id === id);
+    if (o) openOrderModal(o);
+};
+
+window.deleteOrderClick = async function(id) {
+    if (!confirm("Bu sipariş kaydını silmek istediğinize emin misiniz?")) return;
+
+    if (isSupabaseActive && supabaseClient) {
+        try {
+            const { error } = await supabaseClient.from("orders").delete().eq("id", id);
+            if (error) throw error;
+            showToast("Sipariş silindi.", "error");
+            addLog("Sipariş kaydı silindi.");
+            await fetchAllData();
+        } catch (error) {
+            console.error("Delete order error:", error);
+            showToast("Sipariş silinemedi!", "error");
+        }
+    } else {
+        orders = orders.filter(o => o.id !== id);
+        saveLocalOrders();
+        addLog("Sipariş kaydı silindi (Yerel).");
+        await fetchAllData();
+    }
+};

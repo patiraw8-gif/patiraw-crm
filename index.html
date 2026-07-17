@@ -77,6 +77,10 @@
                     <i class="fa-solid fa-box-open"></i>
                     <span>Numune Takibi</span>
                 </a>
+                <a href="#" class="menu-item" data-tab="tab-orders">
+                    <i class="fa-solid fa-cart-shopping"></i>
+                    <span>Sipariş Takibi</span>
+                </a>
                 <a href="#" class="menu-item" data-tab="tab-planner">
                     <i class="fa-solid fa-calendar-check"></i>
                     <span>Arama Planlayıcı</span>
@@ -116,10 +120,26 @@
                     <p class="subtitle" id="page-subtitle">Pati Raw CRM ile işletme süreçlerinizi anlık olarak yönetin.</p>
                 </div>
                 
-                <!-- Connection Status Banner -->
-                <div class="status-banner local" id="connection-status-banner">
-                    <i class="fa-solid fa-database banner-icon"></i>
-                    <span id="connection-status-text">Veriler LocalStorage üzerinde saklanıyor.</span>
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <!-- Connection Status Banner -->
+                    <div class="status-banner local" id="connection-status-banner">
+                        <i class="fa-solid fa-database banner-icon"></i>
+                        <span id="connection-status-text">Veriler LocalStorage üzerinde saklanıyor.</span>
+                    </div>
+
+                    <!-- Notification Bell -->
+                    <div class="notification-bell-wrapper" id="bell-wrapper">
+                        <button class="bell-btn" id="btn-bell" title="Bildirimler" type="button">
+                            <i class="fa-regular fa-bell"></i>
+                            <span class="bell-badge" id="bell-badge" style="display: none;">0</span>
+                        </button>
+                        <div class="bell-dropdown" id="bell-dropdown">
+                            <div class="bell-dropdown-header">Arama Bildirimleri</div>
+                            <div class="bell-dropdown-list" id="bell-dropdown-list">
+                                <!-- Dynamic Notification Items -->
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </header>
 
@@ -138,6 +158,10 @@
                     <div class="stat-box">
                         <span class="stat-label">Bekleyen Fırsatlar</span>
                         <span class="stat-value text-warning" id="stat-pending-customers">0</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">Toplam Ciro (TL)</span>
+                        <span class="stat-value text-success" id="stat-total-revenue" style="color: #10b981 !important;">0 ₺</span>
                     </div>
                     <div class="stat-box">
                         <span class="stat-label">Aylık Toplam Tüketim</span>
@@ -311,6 +335,62 @@
                                 <!-- Dynamic Rows -->
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB CONTENT 4.5: ORDERS -->
+            <div class="tab-pane" id="tab-orders">
+                <div class="dashboard-content">
+                    <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                        <div>
+                            <h2>Müşteri Sipariş Defteri</h2>
+                            <p>Yapılan ürün satışlarını, sipariş tutarlarını ve ödeme durumlarını buradan yönetin.</p>
+                        </div>
+                        <button class="btn btn-primary" id="btn-add-order">
+                            <i class="fa-solid fa-cart-plus"></i> Yeni Sipariş Kaydet
+                        </button>
+                    </div>
+
+                    <!-- Orders Toolbar Filters -->
+                    <div class="toolbar" style="border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 8px;">
+                        <div class="toolbar-left" style="display: flex; gap: 12px; align-items: center;">
+                            <div class="search-wrapper">
+                                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                                <input type="text" id="order-search-input" placeholder="Sipariş veya işletme ara..." style="padding-left: 36px; height: 38px;">
+                            </div>
+                            <select id="order-filter-status" style="height: 38px;">
+                                <option value="">Tüm Ödeme Durumları</option>
+                                <option value="Ödendi">Ödendi</option>
+                                <option value="Beklemede">Beklemede</option>
+                                <option value="İptal">İptal</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Orders Table -->
+                    <div class="table-responsive">
+                        <table class="customer-table">
+                            <thead>
+                                <tr>
+                                    <th>İŞLETME / MÜŞTERİ</th>
+                                    <th>ÜRÜN DETAYI</th>
+                                    <th class="text-right">ADET</th>
+                                    <th class="text-right">TOPLAM TUTAR</th>
+                                    <th class="text-center">TARİH</th>
+                                    <th class="text-center">ÖDEME DURUMU</th>
+                                    <th class="text-center">İŞLEMLER</th>
+                                </tr>
+                            </thead>
+                            <tbody id="order-table-body">
+                                <!-- Dynamic Orders Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="no-data" id="order-no-data-msg" style="display: none;">
+                        <i class="fa-solid fa-folder-open"></i>
+                        <p>Kayıtlı sipariş bulunamadı. Filtreleri kontrol edin veya yeni sipariş ekleyin.</p>
                     </div>
                 </div>
             </div>
@@ -678,6 +758,11 @@
                     </div>
 
                     <div class="form-group" style="grid-column: span 2;">
+                        <label for="input-tags">Müşteri Etiketleri (Virgülle ayırın)</label>
+                        <input type="text" id="input-tags" placeholder="Örn: Toptancı, K9 Kulübü, VIP">
+                    </div>
+
+                    <div class="form-group" style="grid-column: span 2;">
                         <label for="input-last-note">Son Görüşme Notu</label>
                         <textarea id="input-last-note" rows="3" placeholder="Bu müşteriyle yapılan son görüşmenin detaylarını yazın..." style="padding: 10px; border: 1.5px solid var(--border-color); border-radius: var(--radius-md); font-family: inherit; font-size: 13.5px; resize: vertical;"></textarea>
                     </div>
@@ -732,6 +817,70 @@
                 <div class="form-actions" style="padding: 16px 24px;">
                     <button type="button" class="btn btn-secondary" onclick="closeQuickMeetingModal()">İptal</button>
                     <button type="submit" class="btn btn-primary" id="btn-save-meeting">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- NEW ORDER MODAL -->
+    <div class="modal-overlay" id="order-modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3 id="order-modal-title">Yeni Sipariş Kaydet</h3>
+                <button class="close-btn" onclick="closeOrderModal()">&times;</button>
+            </div>
+            <form id="order-form" style="padding: 24px;">
+                <input type="hidden" id="order-id">
+                
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label for="order-customer-id">Müşteri Seçin <span class="required">*</span></label>
+                    <select id="order-customer-id" required style="width: 100%;">
+                        <!-- Dynamic Customer Dropdown -->
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label for="order-product-name">Ürün Seçin <span class="required">*</span></label>
+                    <select id="order-product-name" required style="width: 100%;">
+                        <option value="Raw Kuzu 5kg">Raw Kuzu 5kg (Barf Paket)</option>
+                        <option value="Raw Kuzu 10kg">Raw Kuzu 10kg (Barf Paket)</option>
+                        <option value="Raw Tavuk 5kg">Raw Tavuk 5kg (Barf Paket)</option>
+                        <option value="Raw Tavuk 10kg">Raw Tavuk 10kg (Barf Paket)</option>
+                        <option value="Raw Kırmızı Karışım 10kg">Raw Kırmızı Karışım 10kg (Barf Paket)</option>
+                        <option value="İlikli Kemik Suyu (24'lü)">İlikli Kemik Suyu (24'lü Koli)</option>
+                        <option value="Somon Yağı Katkısı 250ml">Somon Yağı Katkısı 250ml</option>
+                    </select>
+                </div>
+
+                <div class="form-grid" style="margin-bottom: 16px;">
+                    <div class="form-group">
+                        <label for="order-quantity">Adet <span class="required">*</span></label>
+                        <input type="number" id="order-quantity" required min="1" value="1" style="width: 100%;">
+                    </div>
+                    <div class="form-group">
+                        <label for="order-total-amount">Toplam Tutar (TL) <span class="required">*</span></label>
+                        <input type="number" id="order-total-amount" required min="0" placeholder="Örn: 2400" style="width: 100%;">
+                    </div>
+                </div>
+
+                <div class="form-grid" style="margin-bottom: 16px;">
+                    <div class="form-group">
+                        <label for="order-date">Sipariş Tarihi <span class="required">*</span></label>
+                        <input type="date" id="order-date" required style="width: 100%;">
+                    </div>
+                    <div class="form-group">
+                        <label for="order-status">Ödeme Durumu</label>
+                        <select id="order-status" required style="width: 100%;">
+                            <option value="Ödendi">Ödendi</option>
+                            <option value="Beklemede">Beklemede</option>
+                            <option value="İptal">İptal</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-actions" style="margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border-color);">
+                    <button type="button" class="btn btn-secondary" onclick="closeOrderModal()">İptal</button>
+                    <button type="submit" class="btn btn-primary" id="btn-save-order">Kaydet</button>
                 </div>
             </form>
         </div>
