@@ -85,6 +85,10 @@
                     <i class="fa-solid fa-filter"></i>
                     <span>Satış Hunisi</span>
                 </a>
+                <a href="#" class="menu-item" data-tab="tab-admin">
+                    <i class="fa-solid fa-user-shield"></i>
+                    <span>Yönetici Paneli</span>
+                </a>
                 <a href="#" class="menu-item" data-tab="tab-settings">
                     <i class="fa-solid fa-gears"></i>
                     <span>Bağlantı Ayarları</span>
@@ -385,6 +389,111 @@
                     <div class="funnel-info-box">
                         <i class="fa-solid fa-circle-info"></i>
                         <span><strong>Dönüşüm Oranı Analizi:</strong> Aktif müşteri kategorisindeki firmalar satışa dönüştürülmüş iş fırsatlarını gösterir. Beklemedekiler ise takibi devam eden potansiyel müşterileri temsil eder.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB CONTENT 6.5: ADMIN PANEL -->
+            <div class="tab-pane" id="tab-admin">
+                <div class="dashboard-content">
+                    <div class="section-header">
+                        <h2>Yönetici Paneli (Admin Portal)</h2>
+                        <p>Kullanıcı hesabı ayarlarını yönetin, yedekleme yapın ve sistem loglarını inceleyin.</p>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                        
+                        <!-- Credentials Update Form -->
+                        <div class="chart-card" style="box-shadow: var(--shadow-sm); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 24px; background-color: var(--card-bg);">
+                            <h3 style="margin-bottom: 16px; font-size: 16px; border-bottom: 1.5px solid var(--border-color); padding-bottom: 10px;">
+                                <i class="fa-solid fa-key" style="color: var(--primary); margin-right: 8px;"></i>Giriş Bilgilerini Güncelle
+                            </h3>
+                            <form id="admin-credentials-form" style="display: flex; flex-direction: column; gap: 14px;">
+                                <div class="form-group">
+                                    <label>Geçerli Oturum Kullanıcısı</label>
+                                    <input type="text" id="admin-current-user" readonly style="background-color: #f3f4f6; color: #6b7280;">
+                                </div>
+                                <div class="form-group">
+                                    <label>Mevcut Şifre <span class="required">*</span></label>
+                                    <input type="password" id="admin-current-password" required placeholder="Onaylamak için mevcut şifrenizi girin">
+                                </div>
+                                <div class="form-group">
+                                    <label>Yeni Kullanıcı Adı (E-posta)</label>
+                                    <input type="text" id="admin-new-username" placeholder="Değiştirmek istemiyorsanız boş bırakın">
+                                </div>
+                                <div class="form-group">
+                                    <label>Yeni Şifre</label>
+                                    <input type="password" id="admin-new-password" placeholder="Değiştirmek istemiyorsanız boş bırakın">
+                                </div>
+                                <div class="form-group">
+                                    <label>Yeni Şifre (Tekrar)</label>
+                                    <input type="password" id="admin-confirm-password" placeholder="Yeni şifrenizi tekrar yazın">
+                                </div>
+                                <button type="submit" class="btn btn-primary" style="margin-top: 10px; width: 100%;">
+                                    <i class="fa-solid fa-floppy-disk"></i> Güncelle ve Kaydet
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Data & Backup Administration -->
+                        <div style="display: flex; flex-direction: column; gap: 24px;">
+                            <div class="chart-card" style="box-shadow: var(--shadow-sm); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 24px; background-color: var(--card-bg);">
+                                <h3 style="margin-bottom: 16px; font-size: 16px; border-bottom: 1.5px solid var(--border-color); padding-bottom: 10px;">
+                                    <i class="fa-solid fa-database" style="color: var(--primary); margin-right: 8px;"></i>Veri Yönetimi & Yedekleme
+                                </h3>
+                                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+                                    Müşteri listesini ve tüm veritabanı kayıtlarını yedekleyip bilgisayarınıza indirebilir, daha sonra geri yükleyebilirsiniz.
+                                </p>
+                                <div style="display: flex; flex-direction: column; gap: 12px;">
+                                    <button type="button" class="btn btn-export" id="btn-backup-json" style="width: 100%; justify-content: flex-start;">
+                                        <i class="fa-solid fa-file-arrow-down" style="color: var(--primary);"></i> Verileri JSON Olarak Yedekle
+                                    </button>
+                                    
+                                    <div style="position: relative;">
+                                        <input type="file" id="input-restore-json" accept=".json" style="display: none;">
+                                        <button type="button" class="btn btn-export" id="btn-restore-json" style="width: 100%; justify-content: flex-start;">
+                                            <i class="fa-solid fa-file-arrow-up" style="color: #10b981;"></i> Yedekten Geri Yükle (.json)
+                                        </button>
+                                    </div>
+
+                                    <button type="button" class="btn btn-danger" id="btn-reset-defaults" style="width: 100%; justify-content: flex-start;">
+                                        <i class="fa-solid fa-rotate-left"></i> Fabrika Ayarlarına Dön (Örnek Veri Yükle)
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Session / System Stats Box -->
+                            <div class="chart-card" style="box-shadow: var(--shadow-sm); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 20px; background-color: var(--card-bg);">
+                                <h3 style="margin-bottom: 12px; font-size: 15px; border-bottom: 1.5px solid var(--border-color); padding-bottom: 8px;">
+                                    <i class="fa-solid fa-info-circle" style="color: var(--primary); margin-right: 8px;"></i>Sistem Bilgisi
+                                </h3>
+                                <div style="font-size: 12.5px; display: flex; flex-direction: column; gap: 8px;">
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="color: var(--text-muted);">Bağlantı Türü:</span>
+                                        <span id="admin-connection-type" style="font-weight: 700;">Bulut (Supabase)</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="color: var(--text-muted);">Aktif Rol:</span>
+                                        <span style="font-weight: 700; color: var(--primary);">Sistem Yöneticisi</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="color: var(--text-muted);">Müşteri Sayısı:</span>
+                                        <span id="admin-customer-count" style="font-weight: 700;">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- System Logs Console -->
+                    <div class="chart-card" style="margin-top: 24px; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 24px; background-color: var(--card-bg);">
+                        <h3 style="margin-bottom: 16px; font-size: 16px; border-bottom: 1.5px solid var(--border-color); padding-bottom: 10px;">
+                            <i class="fa-solid fa-terminal" style="color: var(--primary); margin-right: 8px;"></i>Sistem ve Güvenlik Logları (Bu Oturum)
+                        </h3>
+                        <div id="admin-logs-container" style="background-color: #111827; color: #10b981; font-family: monospace; font-size: 12px; padding: 16px; border-radius: var(--radius-md); max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; border: 1px solid #374151;">
+                            <!-- Dynamic Session Logs -->
+                        </div>
                     </div>
                 </div>
             </div>

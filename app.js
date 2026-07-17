@@ -78,6 +78,7 @@ const tabHeaderDetails = {
     "tab-samples": { title: "Numune Takibi", subtitle: "Verilen numuneler ve tüketim potansiyelleri analizi." },
     "tab-planner": { title: "Arama Planlayıcı", subtitle: "Geri arama tarihleri planlanmış ve gecikmiş müşteriler." },
     "tab-funnel": { title: "Satış Hunisi", subtitle: "Müşteri dönüşüm oranları analizi." },
+    "tab-admin": { title: "Yönetici Paneli", subtitle: "Kullanıcı hesap bilgilerini, veri yedekleme süreçlerini ve sistem loglarını yönetin." },
     "tab-settings": { title: "Bağlantı Ayarları", subtitle: "Supabase bulut veritabanı entegrasyon ayarları." }
 };
 
@@ -139,7 +140,9 @@ if (loginForm) {
         }
 
         // Fallback to local credentials
-        if ((email === LOCAL_ADMIN_USER || email === "admin@patiraw.com") && password === LOCAL_ADMIN_PASS) {
+        const localUser = localStorage.getItem("pati_raw_local_user") || LOCAL_ADMIN_USER;
+        const localPass = localStorage.getItem("pati_raw_local_pass") || LOCAL_ADMIN_PASS;
+        if ((email === localUser || email === "admin@patiraw.com" || email === "admin") && password === localPass) {
             sessionStorage.setItem("pati_raw_logged_in", "true");
             sessionStorage.setItem("pati_raw_user", email);
             hideLogin();
@@ -172,6 +175,10 @@ async function initApp() {
     await fetchAllData();
     setupEventListeners();
     setupTabNavigation();
+    if (typeof addLog === 'function') {
+        const username = sessionStorage.getItem("pati_raw_user") || "admin";
+        addLog(`Sistem oturumu açıldı. Aktif Kullanıcı: ${username}`);
+    }
 }
 
 // Load settings from config.js or LocalStorage
@@ -246,6 +253,9 @@ async function fetchAllData() {
     renderTable();
     updateStats();
     refreshAllDashboardPanels();
+    if (typeof addLog === 'function') {
+        addLog(`Veritabanı yüklendi. Toplam ${customers.length} müşteri kaydı listeleniyor.`);
+    }
 }
 
 function loadLocalData() {
@@ -284,6 +294,7 @@ function setupTabNavigation() {
             else if (targetTabId === 'tab-samples') buildSamplesDashboard();
             else if (targetTabId === 'tab-planner') filterRecallList(currentRecallFilter);
             else if (targetTabId === 'tab-funnel') buildConversionFunnel();
+            else if (targetTabId === 'tab-admin') renderAdminPanel();
         });
     });
 }
@@ -325,6 +336,23 @@ function setupEventListeners() {
     // Arama Planlayıcı Butonu (Müşteri formunu açar)
     const btnAddPlanner = document.getElementById("btn-add-planner-call");
     if (btnAddPlanner) btnAddPlanner.addEventListener("click", openQuickMeetingModal);
+
+    // Admin Panel Event Listeners
+    const adminCredsForm = document.getElementById("admin-credentials-form");
+    if (adminCredsForm) adminCredsForm.addEventListener("submit", handleAdminCredentialsSubmit);
+
+    const btnBackupJson = document.getElementById("btn-backup-json");
+    if (btnBackupJson) btnBackupJson.addEventListener("click", backupDataToJson);
+
+    const btnRestoreJson = document.getElementById("btn-restore-json");
+    const inputRestoreJson = document.getElementById("input-restore-json");
+    if (btnRestoreJson && inputRestoreJson) {
+        btnRestoreJson.addEventListener("click", () => inputRestoreJson.click());
+        inputRestoreJson.addEventListener("change", restoreDataFromJson);
+    }
+
+    const btnResetDefaults = document.getElementById("btn-reset-defaults");
+    if (btnResetDefaults) btnResetDefaults.addEventListener("click", handleResetDefaults);
 }
 
 // ==========================================
@@ -791,4 +819,255 @@ function exportToCSV() {
     const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `pati_raw_crm_${new Date().toISOString().slice(0,10)}.csv`; link.style.visibility = "hidden";
     document.body.appendChild(link); link.click(); document.body.removeChild(link);
     showToast("CSV dosyası indirildi.");
+}
+
+// ==========================================
+// 21. YÖNETİCİ PANELİ (ADMIN PANEL) MANTII
+// ==========================================
+let sessionLogs = [];
+
+function addLog(message) {
+    const timestamp = new Date().toTimeString().slice(0, 8);
+    const logStr = `[${timestamp}] ${message}`;
+    sessionLogs.push(logStr);
+    
+    // En fazla 100 log tut
+    if (sessionLogs.length > 100) sessionLogs.shift();
+    
+    const container = document.getElementById("admin-logs-container");
+    if (container) {
+        container.innerHTML = sessionLogs.map(l => `<div>${l}</div>`).join("");
+        container.scrollTop = container.scrollHeight;
+    }
+}
+
+function renderAdminPanel() {
+    const currentUserInput = document.getElementById("admin-current-user");
+    if (currentUserInput) {
+        currentUserInput.value = sessionStorage.getItem("pati_raw_user") || "admin";
+    }
+
+    const connTypeEl = document.getElementById("admin-connection-type");
+    if (connTypeEl) {
+        connTypeEl.textContent = isSupabaseActive ? "Bulut (Supabase)" : "Yerel Depolama (LocalStorage)";
+        connTypeEl.style.color = isSupabaseActive ? "var(--status-active-bg)" : "var(--status-pending-bg)";
+    }
+
+    const countEl = document.getElementById("admin-customer-count");
+    if (countEl) {
+        countEl.textContent = `${customers.length} Kayıt`;
+    }
+}
+
+// Giriş Bilgileri Güncelleme Submit Formu
+async function handleAdminCredentialsSubmit(e) {
+    e.preventDefault();
+    const currentPass = document.getElementById("admin-current-password").value;
+    const newUsername = document.getElementById("admin-new-username").value.trim();
+    const newPass = document.getElementById("admin-new-password").value;
+    const confirmPass = document.getElementById("admin-confirm-password").value;
+
+    // Şifre eşleşme kontrolü
+    if (newPass && newPass !== confirmPass) {
+        showToast("Yeni şifreler eşleşmiyor!", "error");
+        return;
+    }
+
+    if (isSupabaseActive && supabaseClient) {
+        // Supabase ile Şifre/Kullanıcı güncelleme
+        try {
+            const currentEmail = sessionStorage.getItem("pati_raw_user") || "";
+            const { error: verifyError } = await supabaseClient.auth.signInWithPassword({
+                email: currentEmail,
+                password: currentPass
+            });
+
+            if (verifyError) {
+                showToast("Mevcut şifreniz yanlış!", "error");
+                return;
+            }
+
+            const updateData = {};
+            if (newUsername) updateData.email = newUsername;
+            if (newPass) updateData.password = newPass;
+
+            if (Object.keys(updateData).length === 0) {
+                showToast("Güncellenecek yeni bir bilgi girmediniz.", "error");
+                return;
+            }
+
+            const { error } = await supabaseClient.auth.updateUser(updateData);
+            if (error) throw error;
+
+            showToast("Supabase kullanıcı bilgileri güncellendi.");
+            addLog(`Kullanıcı bilgileri güncellendi. Yeni E-posta: ${newUsername || currentEmail}`);
+            if (newUsername) {
+                sessionStorage.setItem("pati_raw_user", newUsername);
+                document.getElementById("admin-current-user").value = newUsername;
+            }
+            
+            // Temizle
+            document.getElementById("admin-current-password").value = "";
+            document.getElementById("admin-new-username").value = "";
+            document.getElementById("admin-new-password").value = "";
+            document.getElementById("admin-confirm-password").value = "";
+
+        } catch (error) {
+            console.error("Supabase auth update error:", error);
+            showToast("Güncelleme başarısız: " + error.message, "error");
+        }
+    } else {
+        // Yerel LocalStorage Giriş Bilgilerini Değiştirme
+        const currentLocalUser = localStorage.getItem("pati_raw_local_user") || "admin";
+        const currentLocalPass = localStorage.getItem("pati_raw_local_pass") || "patiraw2026";
+
+        if (currentPass !== currentLocalPass) {
+            showToast("Mevcut şifreniz yanlış!", "error");
+            return;
+        }
+
+        const nextUser = newUsername || currentLocalUser;
+        const nextPass = newPass || currentLocalPass;
+
+        localStorage.setItem("pati_raw_local_user", nextUser);
+        localStorage.setItem("pati_raw_local_pass", nextPass);
+
+        sessionStorage.setItem("pati_raw_user", nextUser);
+        document.getElementById("admin-current-user").value = nextUser;
+
+        showToast("Yerel giriş bilgileri başarıyla güncellendi.");
+        addLog(`Yerel yönetici bilgileri güncellendi. Kullanıcı: ${nextUser}`);
+
+        // Temizle
+        document.getElementById("admin-current-password").value = "";
+        document.getElementById("admin-new-username").value = "";
+        document.getElementById("admin-new-password").value = "";
+        document.getElementById("admin-confirm-password").value = "";
+    }
+}
+
+// JSON Yedek İndirme
+function backupDataToJson() {
+    try {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(customers, null, 2));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", `pati_raw_backup_${new Date().toISOString().slice(0, 10)}.json`);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+        showToast("Yedek JSON dosyası başarıyla indirildi.");
+        addLog("Tüm veritabanı JSON yedeği olarak indirildi.");
+    } catch (e) {
+        showToast("Yedek alınırken hata oluştu!", "error");
+    }
+}
+
+// JSON Yedekten Geri Yükleme
+function restoreDataFromJson(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async function(evt) {
+        try {
+            const importedData = JSON.parse(evt.target.result);
+            if (!Array.isArray(importedData)) {
+                throw new Error("Geçersiz veri yapısı. JSON bir dizi (array) olmalıdır.");
+            }
+
+            const isValid = importedData.every(c => c.businessName && c.contactPerson && c.phone);
+            if (!isValid) {
+                throw new Error("Dizi içerisindeki kayıtlar zorunlu alanları (businessName, contactPerson, phone) içermelidir.");
+            }
+
+            if (!confirm(`Yedekteki ${importedData.length} müşteriyi geri yüklemek istiyor musunuz? Mevcut tüm veriler silinecektir!`)) {
+                return;
+            }
+
+            if (isSupabaseActive && supabaseClient) {
+                addLog("Yedekten Supabase'e geri yükleme başlatılıyor...");
+                const { error: delErr } = await supabaseClient.from("customers").delete().neq("id", "0");
+                if (delErr) throw delErr;
+
+                const dbRows = importedData.map(c => ({
+                    id: c.id || Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                    business_name: c.businessName,
+                    contact_person: c.contactPerson,
+                    phone: c.phone,
+                    city: c.city || "",
+                    last_contact_date: c.lastContactDate || null,
+                    monthly_consumption: Number(c.monthlyConsumption) || 0,
+                    sample_given: !!c.sampleGiven,
+                    recall_date: c.recallDate || null,
+                    status: c.status || "Aktif",
+                    last_contact_note: c.lastContactNote || ""
+                }));
+
+                const { error: insErr } = await supabaseClient.from("customers").insert(dbRows);
+                if (insErr) throw insErr;
+
+                addLog(`Supabase yedekten geri yükleme başarılı. ${importedData.length} kayıt eklendi.`);
+            } else {
+                customers = importedData;
+                saveLocalData();
+                addLog(`LocalStorage yedekten geri yükleme başarılı. ${importedData.length} kayıt yüklendi.`);
+            }
+
+            showToast("Veriler başarıyla geri yüklendi!");
+            await fetchAllData();
+            renderAdminPanel();
+
+        } catch (err) {
+            alert("Yedek yükleme hatası: " + err.message);
+            showToast("Yedek yüklenemedi!", "error");
+        } finally {
+            e.target.value = "";
+        }
+    };
+    reader.readAsText(file);
+}
+
+// Varsayılan Fabrika Ayarlarına Dönüş
+async function handleResetDefaults() {
+    if (!confirm("Tüm verileri silip varsayılan örnek verileri yüklemek istediğinize emin misiniz?")) return;
+
+    if (isSupabaseActive && supabaseClient) {
+        try {
+            addLog("Supabase veritabanı sıfırlanıyor...");
+            const { error: delErr } = await supabaseClient.from("customers").delete().neq("id", "0");
+            if (delErr) throw delErr;
+
+            const dbRows = defaultCustomers.map(c => ({
+                id: c.id,
+                business_name: c.businessName,
+                contact_person: c.contactPerson,
+                phone: c.phone,
+                city: c.city,
+                last_contact_date: c.lastContactDate,
+                monthly_consumption: c.monthlyConsumption,
+                sample_given: c.sampleGiven,
+                recall_date: c.recallDate,
+                status: c.status,
+                last_contact_note: c.lastContactNote
+            }));
+
+            const { error: insErr } = await supabaseClient.from("customers").insert(dbRows);
+            if (insErr) throw insErr;
+
+            addLog("Supabase veritabanı sıfırlandı ve örnek veriler yüklendi.");
+        } catch (error) {
+            console.error("Reset defaults failed:", error);
+            showToast("Sıfırlama başarısız oldu!", "error");
+            return;
+        }
+    } else {
+        customers = [...defaultCustomers];
+        saveLocalData();
+        addLog("LocalStorage veritabanı sıfırlandı ve örnek veriler yüklendi.");
+    }
+
+    showToast("Fabrika ayarlarına dönüldü!");
+    await fetchAllData();
+    renderAdminPanel();
 }
