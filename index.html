@@ -151,25 +151,40 @@
             <div class="tab-pane active" id="tab-dashboard">
                 <!-- LIVE METRICS PANEL -->
                 <section class="stats-panel">
-                    <div class="stat-box">
-                        <span class="stat-label">Toplam Müşteri</span>
-                        <span class="stat-value" id="stat-total-customers">0</span>
+                    <div class="stat-box" style="display: flex; flex-direction: row; justify-content: space-between; align-items: center; padding: 20px 24px;">
+                        <div style="display: flex; flex-direction: column; gap: 6px;">
+                            <span class="stat-label">Toplam Müşteri</span>
+                            <span class="stat-value" id="stat-total-customers">0</span>
+                        </div>
+                        <span style="font-size: 36px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">🐕</span>
                     </div>
-                    <div class="stat-box">
-                        <span class="stat-label">Aktif Müşteriler</span>
-                        <span class="stat-value text-success" id="stat-active-customers">0</span>
+                    <div class="stat-box" style="display: flex; flex-direction: row; justify-content: space-between; align-items: center; padding: 20px 24px;">
+                        <div style="display: flex; flex-direction: column; gap: 6px;">
+                            <span class="stat-label">Aktif Müşteriler</span>
+                            <span class="stat-value text-success" id="stat-active-customers">0</span>
+                        </div>
+                        <span style="font-size: 36px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">📈</span>
                     </div>
-                    <div class="stat-box">
-                        <span class="stat-label">Bekleyen Fırsatlar</span>
-                        <span class="stat-value text-warning" id="stat-pending-customers">0</span>
+                    <div class="stat-box" style="display: flex; flex-direction: row; justify-content: space-between; align-items: center; padding: 20px 24px;">
+                        <div style="display: flex; flex-direction: column; gap: 6px;">
+                            <span class="stat-label">Bekleyen Fırsatlar</span>
+                            <span class="stat-value text-warning" id="stat-pending-customers">0</span>
+                        </div>
+                        <span style="font-size: 36px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">⏳</span>
                     </div>
-                    <div class="stat-box">
-                        <span class="stat-label">Toplam Ciro (TL)</span>
-                        <span class="stat-value text-success" id="stat-total-revenue" style="color: #10b981 !important;">0 ₺</span>
+                    <div class="stat-box" style="display: flex; flex-direction: row; justify-content: space-between; align-items: center; padding: 20px 24px;">
+                        <div style="display: flex; flex-direction: column; gap: 6px;">
+                            <span class="stat-label">Toplam Ciro (TL)</span>
+                            <span class="stat-value text-success" id="stat-total-revenue" style="color: #10b981 !important;">0 ₺</span>
+                        </div>
+                        <span style="font-size: 36px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">💰</span>
                     </div>
-                    <div class="stat-box">
-                        <span class="stat-label">Aylık Toplam Tüketim</span>
-                        <span class="stat-value text-orange" id="stat-total-consumption">0 kg</span>
+                    <div class="stat-box" style="display: flex; flex-direction: row; justify-content: space-between; align-items: center; padding: 20px 24px;">
+                        <div style="display: flex; flex-direction: column; gap: 6px;">
+                            <span class="stat-label">Aylık Toplam Tüketim</span>
+                            <span class="stat-value text-orange" id="stat-total-consumption">0 kg</span>
+                        </div>
+                        <span style="font-size: 36px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">🥩</span>
                     </div>
                 </section>
 
@@ -192,17 +207,17 @@
                 <!-- BENEFITS PANEL -->
                 <section class="benefits-section">
                     <div class="benefit-card" onclick="showBenefitInfo('Takiplerini kolaylaştırır', 'Zamanı doğru planlamanızı sağlayarak aranacak müşterilerinizi asla kaçırmamanızı sağlar.')">
-                        <i class="fa-regular fa-clock"></i>
+                        <span class="benefit-icon" style="font-size: 32px; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-full); background-color: rgba(249, 115, 22, 0.1); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.05));">📅</span>
                         <h4>Takip Kolaylığı</h4>
                         <p>Tüm aramaları tek ekranda güncel tutar.</p>
                     </div>
                     <div class="benefit-card" onclick="showBenefitInfo('Müşteri ilişkilerini güçlendirir', 'Müşterilerinizin son görüşme tarihlerini ve notlarını saklar.')">
-                        <i class="fa-solid fa-users"></i>
+                        <span class="benefit-icon" style="font-size: 32px; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-full); background-color: rgba(249, 115, 22, 0.1); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.05));">🤝</span>
                         <h4>Müşteri İlişkileri</h4>
                         <p>Kişiselleştirilmiş yaklaşımlar geliştirin.</p>
                     </div>
                     <div class="benefit-card" onclick="showBenefitInfo('Satış fırsatlarını değerlendirir', 'Gönderilen numunelerin tüketim kapasitesine göre önceliklendirme yapar.')">
-                        <i class="fa-solid fa-crosshairs"></i>
+                        <span class="benefit-icon" style="font-size: 32px; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-full); background-color: rgba(249, 115, 22, 0.1); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.05));">🎯</span>
                         <h4>Önceliklendirme</h4>
                         <p>Doğru fırsatlara odaklanarak büyüyün.</p>
                     </div>
