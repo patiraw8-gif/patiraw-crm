@@ -6,6 +6,6 @@
 // ==========================================
 
 const SUPABASE_CONFIG = {
-    url: "", // Örn: "https://xxxx.supabase.co"
-    key: ""  // Örn: "eyJhbGciOiJIUzI1NiIsIn..."
+    url: "https://tkbtarsleyxyrtcrwufv.supabase.co",
+    key: "sb_publishable_CbB5OmlKWYNwQinQJDrFRw_NrKOUwsp"
 };
