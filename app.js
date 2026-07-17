@@ -102,7 +102,7 @@ function showLogin() {
     loginOverlay.classList.remove("hide");
     // Update footer text based on config
     if (typeof SUPABASE_CONFIG !== 'undefined' && SUPABASE_CONFIG.url && SUPABASE_CONFIG.key) {
-        loginFooterText.textContent = "Supabase bağlantısı aktif. Supabase Authentication ile giriş yapabilirsiniz veya yerel kullanıcı: admin / patiraw2026";
+        loginFooterText.textContent = "Supabase bağlantısı aktif. Yetkili kullanıcı giriş bilgilerinizi kullanarak oturum açabilirsiniz.";
     }
 }
 
