@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pati Raw CRM | Profesyonel Yönetim Paneli</title>
+    <!-- Google Fonts: Outfit & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js for corporate graphics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Supabase JS Client library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <div class="dashboard-wrapper">
+        
+        <!-- SIDEBAR NAVIGATION -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <div class="logo-main">
+                    <span class="logo-pati">Pati</span><span class="logo-raw">Raw</span>
+                    <i class="fa-solid fa-paw logo-icon"></i>
+                </div>
+                <div class="logo-sub">PAKETTEN DEĞİL, DOĞADAN.</div>
+            </div>
+            
+            <nav class="sidebar-menu">
+                <a href="#" class="menu-item active" data-tab="tab-dashboard">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>Kontrol Paneli</span>
+                </a>
+                <a href="#" class="menu-item" data-tab="tab-customers">
+                    <i class="fa-solid fa-users"></i>
+                    <span>Müşteri Listesi</span>
+                </a>
+                <a href="#" class="menu-item" data-tab="tab-timeline">
+                    <i class="fa-solid fa-timeline"></i>
+                    <span>Görüşme Geçmişi</span>
+                </a>
+                <a href="#" class="menu-item" data-tab="tab-samples">
+                    <i class="fa-solid fa-box-open"></i>
+                    <span>Numune Takibi</span>
+                </a>
+                <a href="#" class="menu-item" data-tab="tab-planner">
+                    <i class="fa-solid fa-calendar-check"></i>
+                    <span>Arama Planlayıcı</span>
+                </a>
+                <a href="#" class="menu-item" data-tab="tab-funnel">
+                    <i class="fa-solid fa-filter"></i>
+                    <span>Satış Hunisi</span>
+                </a>
+                <a href="#" class="menu-item" data-tab="tab-settings">
+                    <i class="fa-solid fa-gears"></i>
+                    <span>Bağlantı Ayarları</span>
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <p>© 2026 Pati Raw CRM</p>
+                <span>v2.0.0 Pro</span>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT CONTAINER -->
+        <main class="main-content">
+            
+            <!-- HEADER / TOPBAR -->
+            <header class="top-header">
+                <div class="header-title">
+                    <h1 id="page-title">Kontrol Paneli</h1>
+                    <p class="subtitle" id="page-subtitle">Pati Raw CRM ile işletme süreçlerinizi anlık olarak yönetin.</p>
+                </div>
+                
+                <!-- Connection Status Banner -->
+                <div class="status-banner local" id="connection-status-banner">
+                    <i class="fa-solid fa-database banner-icon"></i>
+                    <span id="connection-status-text">Veriler LocalStorage üzerinde saklanıyor.</span>
+                </div>
+            </header>
+
+            <!-- TAB CONTENT 1: DASHBOARD -->
+            <div class="tab-pane active" id="tab-dashboard">
+                <!-- LIVE METRICS PANEL -->
+                <section class="stats-panel">
+                    <div class="stat-box">
+                        <span class="stat-label">Toplam Müşteri</span>
+                        <span class="stat-value" id="stat-total-customers">0</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">Aktif Müşteriler</span>
+                        <span class="stat-value text-success" id="stat-active-customers">0</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">Bekleyen Fırsatlar</span>
+                        <span class="stat-value text-warning" id="stat-pending-customers">0</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">Aylık Toplam Tüketim</span>
+                        <span class="stat-value text-orange" id="stat-total-consumption">0 kg</span>
+                    </div>
+                </section>
+
+                <!-- CHARTS PANEL -->
+                <section class="charts-section">
+                    <div class="chart-card">
+                        <h3>Şehir Bazlı Aylık Tüketim Dağılımı (KG)</h3>
+                        <div class="chart-container">
+                            <canvas id="cityChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Satış Durum Dağılımı</h3>
+                        <div class="chart-container">
+                            <canvas id="statusChart"></canvas>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- BENEFITS PANEL -->
+                <section class="benefits-section">
+                    <div class="benefit-card" onclick="showBenefitInfo('Takiplerini kolaylaştırır', 'Zamanı doğru planlamanızı sağlayarak aranacak müşterilerinizi asla kaçırmamanızı sağlar.')">
+                        <i class="fa-regular fa-clock"></i>
+                        <h4>Takip Kolaylığı</h4>
+                        <p>Tüm aramaları tek ekranda güncel tutar.</p>
+                    </div>
+                    <div class="benefit-card" onclick="showBenefitInfo('Müşteri ilişkilerini güçlendirir', 'Müşterilerinizin son görüşme tarihlerini ve notlarını saklar.')">
+                        <i class="fa-solid fa-users"></i>
+                        <h4>Müşteri İlişkileri</h4>
+                        <p>Kişiselleştirilmiş yaklaşımlar geliştirin.</p>
+                    </div>
+                    <div class="benefit-card" onclick="showBenefitInfo('Satış fırsatlarını değerlendirir', 'Gönderilen numunelerin tüketim kapasitesine göre önceliklendirme yapar.')">
+                        <i class="fa-solid fa-crosshairs"></i>
+                        <h4>Önceliklendirme</h4>
+                        <p>Doğru fırsatlara odaklanarak büyüyün.</p>
+                    </div>
+                </section>
+            </div>
+
+            <!-- TAB CONTENT 2: CUSTOMERS TABLE -->
+            <div class="tab-pane" id="tab-customers">
+                <div class="dashboard-content">
+                    <div class="toolbar">
+                        <div class="toolbar-left">
+                            <h2>Müşteri Yönetim Tablosu</h2>
+                        </div>
+                        <div class="toolbar-right">
+                            <div class="search-wrapper">
+                                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                                <input type="text" id="search-input" placeholder="İşletme adı veya yetkili ara...">
+                            </div>
+                            
+                            <select id="filter-city">
+                                <option value="">Tüm Şehirler</option>
+                            </select>
+                            
+                            <select id="filter-status">
+                                <option value="">Tüm Durumlar</option>
+                                <option value="Aktif">Aktif</option>
+                                <option value="Beklemede">Beklemede</option>
+                                <option value="Olumsuz">Olumsuz</option>
+                            </select>
+
+                            <button class="btn btn-export" id="btn-export">
+                                <i class="fa-solid fa-file-csv"></i> Dışa Aktar
+                            </button>
+                            
+                            <button class="btn btn-primary" id="btn-add-customer">
+                                <i class="fa-solid fa-plus"></i> Yeni Müşteri
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Table structure -->
+                    <div class="table-responsive">
+                        <table class="customer-table" id="customer-table">
+                            <thead>
+                                <tr>
+                                    <th data-sort="businessName">İŞLETME ADI <i class="fa-solid fa-sort"></i></th>
+                                    <th data-sort="contactPerson">YETKİLİ KİŞİ <i class="fa-solid fa-sort"></i></th>
+                                    <th data-sort="phone">TELEFON <i class="fa-solid fa-sort"></i></th>
+                                    <th data-sort="city">ŞEHİR <i class="fa-solid fa-sort"></i></th>
+                                    <th data-sort="lastContactDate">SON GÖRÜŞME <i class="fa-solid fa-sort"></i></th>
+                                    <th data-sort="monthlyConsumption" class="text-right">TÜKETİM (KG) <i class="fa-solid fa-sort"></i></th>
+                                    <th data-sort="sampleGiven" class="text-center">NUMUNE <i class="fa-solid fa-sort"></i></th>
+                                    <th data-sort="recallDate">GERİ ARAMA <i class="fa-solid fa-sort"></i></th>
+                                    <th data-sort="status" class="text-center">DURUM <i class="fa-solid fa-sort"></i></th>
+                                    <th class="text-center">İŞLEMLER</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-body">
+                                <!-- Dynamic Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Mobile cards -->
+                    <div class="mobile-cards-container" id="mobile-cards-container">
+                        <!-- Dynamic Mobile Cards -->
+                    </div>
+
+                    <div class="no-data" id="no-data-msg" style="display: none;">
+                        <i class="fa-solid fa-folder-open"></i>
+                        <p>Kayıt bulunamadı. Filtreleri kontrol edin veya yeni kayıt ekleyin.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB CONTENT 3: TIMELINE -->
+            <div class="tab-pane" id="tab-timeline">
+                <div class="dashboard-content">
+                    <div class="section-header">
+                        <h2>Görüşme ve İletişim Zaman Tüneli</h2>
+                        <p>Son görüşme yapılan firmaların dikey akış geçmişi.</p>
+                    </div>
+                    <div class="timeline" id="meetings-timeline">
+                        <!-- Dynamic Timeline -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB CONTENT 4: SAMPLES -->
+            <div class="tab-pane" id="tab-samples">
+                <div class="dashboard-content">
+                    <div class="section-header">
+                        <h2>Numune ve Teklif Süreçleri</h2>
+                        <p>İşletmelerin numune durumlarına göre dağılımı ve bekleyen tüketim potansiyeli.</p>
+                    </div>
+                    
+                    <div class="samples-stats-grid">
+                        <div class="sample-stat-card">
+                            <span class="lbl">Numune Dağıtımı</span>
+                            <span class="val text-success" id="sample-stat-given">0 / 0</span>
+                        </div>
+                        <div class="sample-stat-card">
+                            <span class="lbl">Bekleyen Potansiyel</span>
+                            <span class="val text-warning" id="sample-stat-waiting">0 kg</span>
+                        </div>
+                        <div class="sample-stat-card">
+                            <span class="lbl">Aktif Tüketim Hacmi</span>
+                            <span class="val text-orange" id="sample-stat-active">0 kg</span>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="customer-table">
+                            <thead>
+                                <tr>
+                                    <th>İŞLETME ADI</th>
+                                    <th>ŞEHİR</th>
+                                    <th class="text-right">TÜKETİM (KG)</th>
+                                    <th class="text-center">NUMUNE DURUMU</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sample-table-body">
+                                <!-- Dynamic Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB CONTENT 5: PLANNER -->
+            <div class="tab-pane" id="tab-planner">
+                <div class="dashboard-content">
+                    <div class="section-header">
+                        <h2>Geri Arama Planlayıcı</h2>
+                        <p>Tekrar aranacak müşteriler ve zamanı geçmiş takipler.</p>
+                    </div>
+
+                    <div class="planner-toolbar">
+                        <button class="btn btn-secondary active-filter" id="btn-recall-all" onclick="filterRecallList('all')">Tümü</button>
+                        <button class="btn btn-secondary" id="btn-recall-overdue" onclick="filterRecallList('overdue')">Gecikenler</button>
+                        <button class="btn btn-secondary" id="btn-recall-today" onclick="filterRecallList('today')">Bugün Aranacaklar</button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="customer-table">
+                            <thead>
+                                <tr>
+                                    <th>İŞLETME ADI</th>
+                                    <th>YETKİLİ / TELEFON</th>
+                                    <th class="text-center">GERİ ARAMA TARİHİ</th>
+                                    <th class="text-center">ÖNCELİK DURUMU</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recall-table-body">
+                                <!-- Dynamic Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB CONTENT 6: FUNNEL -->
+            <div class="tab-pane" id="tab-funnel">
+                <div class="dashboard-content">
+                    <div class="section-header">
+                        <h2>Satış Dönüşüm Hunisi (Funnel)</h2>
+                        <p>İşletmelerin satışa dönüşme oranlarının orantısal gösterimi.</p>
+                    </div>
+
+                    <div class="funnel-container-wrapper">
+                        <div class="funnel-container">
+                            <div class="funnel-layer active-layer">
+                                <div class="layer-bar" id="layer-active-bar" style="width: 100%;">
+                                    <span class="layer-title"><i class="fa-solid fa-circle-check"></i> Aktif Müşteriler</span>
+                                    <span class="layer-value" id="layer-active-val">0 Müşteri (0%)</span>
+                                </div>
+                            </div>
+                            
+                            <div class="funnel-layer pending-layer">
+                                <div class="layer-bar" id="layer-pending-bar" style="width: 80%;">
+                                    <span class="layer-title"><i class="fa-solid fa-clock"></i> Bekleyen Fırsatlar</span>
+                                    <span class="layer-value" id="layer-pending-val">0 Müşteri (0%)</span>
+                                </div>
+                            </div>
+                            
+                            <div class="funnel-layer negative-layer">
+                                <div class="layer-bar" id="layer-negative-bar" style="width: 50%;">
+                                    <span class="layer-title"><i class="fa-solid fa-circle-xmark"></i> Olumsuz Sonuçlanan</span>
+                                    <span class="layer-value" id="layer-negative-val">0 Müşteri (0%)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="funnel-info-box">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <span><strong>Dönüşüm Oranı Analizi:</strong> Aktif müşteri kategorisindeki firmalar satışa dönüştürülmüş iş fırsatlarını gösterir. Beklemedekiler ise takibi devam eden potansiyel müşterileri temsil eder.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB CONTENT 7: SETTINGS -->
+            <div class="tab-pane" id="tab-settings">
+                <div class="dashboard-content" style="max-width: 700px;">
+                    <div class="section-header">
+                        <h2>Veritabanı Entegrasyon Ayarları</h2>
+                        <p>Uygulamanın bulut üzerinden çalışması için Supabase bağlantısını buradan yönetebilirsiniz.</p>
+                    </div>
+                    
+                    <form id="settings-form" class="settings-form-layout">
+                        <div class="form-group">
+                            <label for="settings-url">Supabase Project URL</label>
+                            <input type="url" id="settings-url" placeholder="Örn: https://your-project-id.supabase.co" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="settings-key">Supabase Anon Key</label>
+                            <input type="text" id="settings-key" placeholder="Örn: eyJhbGciOiJIUzI1NiIsIn..." required>
+                        </div>
+
+                        <div class="settings-info-alert">
+                            <i class="fa-solid fa-code"></i>
+                            <p>Bağlantıyı doğrulamak için veritabanınızda <code>customers</code> tablosunun SQL şemasının çalıştırılmış olması gerekmektedir.</p>
+                        </div>
+                        
+                        <div class="settings-actions">
+                            <button type="button" class="btn btn-export" id="btn-test-connection">Bağlantıyı Test Et</button>
+                            <button type="submit" class="btn btn-primary">Kaydet ve Bağlan</button>
+                            <button type="button" class="btn btn-danger" id="btn-clear-all" style="margin-left: auto;">Tüm Verileri Sil</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </main>
+
+    </div>
+
+    <!-- ADD / EDIT CUSTOMER MODAL -->
+    <div class="modal-overlay" id="customer-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Yeni Müşteri Kaydı</h3>
+                <button class="close-btn" onclick="closeCustomerModal()">&times;</button>
+            </div>
+            <form id="customer-form">
+                <input type="hidden" id="customer-id">
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="input-business-name">İşletme Adı <span class="required">*</span></label>
+                        <input type="text" id="input-business-name" required placeholder="Örn: İzmir K9 Eğitim Merkezi">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="input-contact-person">Yetkili Kişi <span class="required">*</span></label>
+                        <input type="text" id="input-contact-person" required placeholder="Örn: Emre Yıldız">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="input-phone">Telefon <span class="required">*</span></label>
+                        <input type="tel" id="input-phone" required placeholder="Örn: 0532 123 45 67">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="input-city">Şehir <span class="required">*</span></label>
+                        <input type="text" id="input-city" required placeholder="Örn: İzmir">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="input-last-contact">Son Görüşme Tarihi</label>
+                        <input type="date" id="input-last-contact">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="input-consumption">Aylık Tahmini Tüketim (KG)</label>
+                        <input type="number" id="input-consumption" min="0" placeholder="Örn: 120">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="input-recall-date">Tekrar Aranacak Tarih</label>
+                        <input type="date" id="input-recall-date">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="input-status">Sonuç / Durum</label>
+                        <select id="input-status" required>
+                            <option value="Aktif">Aktif</option>
+                            <option value="Beklemede">Beklemede</option>
+                            <option value="Olumsuz">Olumsuz</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group-checkbox">
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="input-sample-given">
+                        <span class="checkmark"></span>
+                        Numune Verildi Mi?
+                    </label>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeCustomerModal()">İptal</button>
+                    <button type="submit" class="btn btn-primary" id="btn-save-customer">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Confirm Dialog -->
+    <div class="modal-overlay" id="confirm-modal">
+        <div class="modal-content confirm-content">
+            <h3>Kayıt Silinsin mi?</h3>
+            <p>Seçilen müşteri kaydını silmek istediğinize emin misiniz? Bu işlem geri alınamaz.</p>
+            <div class="form-actions">
+                <button class="btn btn-secondary" id="btn-confirm-cancel">Vazgeç</button>
+                <button class="btn btn-danger" id="btn-confirm-delete">Evet, Sil</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Benefit Info Dialog -->
+    <div class="modal-overlay" id="benefit-info-modal">
+        <div class="modal-content confirm-content" style="max-width: 440px;">
+            <h3 id="benefit-info-title">Fayda Detayı</h3>
+            <p id="benefit-info-desc" style="margin: 12px 0 20px 0; line-height: 1.5; color: var(--dark-slate);"></p>
+            <div class="form-actions" style="justify-content: center;">
+                <button class="btn btn-primary" onclick="document.getElementById('benefit-info-modal').classList.remove('open')">Kapat</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dynamic notification toast -->
+    <div class="toast" id="toast-notification">
+        <i class="fa-solid fa-circle-check toast-icon"></i>
+        <span class="toast-message">İşlem başarıyla gerçekleştirildi.</span>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
