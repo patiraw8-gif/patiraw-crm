@@ -358,37 +358,124 @@
                 <div class="dashboard-content">
                     <div class="section-header">
                         <h2>Satış Dönüşüm Hunisi (Funnel)</h2>
-                        <p>İşletmelerin satışa dönüşme oranlarının orantısal gösterimi.</p>
+                        <p>İşletmelerin satış aşamalarına göre orantısal gösterimi ve dönüşüm verimliliği analizi.</p>
                     </div>
 
-                    <div class="funnel-container-wrapper">
-                        <div class="funnel-container">
-                            <div class="funnel-layer active-layer">
-                                <div class="layer-bar" id="layer-active-bar" style="width: 100%;">
-                                    <span class="layer-title"><i class="fa-solid fa-circle-check"></i> Aktif Müşteriler</span>
-                                    <span class="layer-value" id="layer-active-val">0 Müşteri (0%)</span>
+                    <div class="funnel-layout-grid">
+                        
+                        <!-- Left Column: Visual Funnel -->
+                        <div class="funnel-visual-card">
+                            
+                            <!-- Layer 1: Leads -->
+                            <div class="funnel-layer-modern layer-l1">
+                                <div class="funnel-layer-content">
+                                    <span class="funnel-layer-title"><i class="fa-solid fa-users"></i> Toplam Portföy (Hedef Havuz)</span>
+                                    <span class="funnel-layer-val" id="funnel-val-total">0 Müşteri</span>
                                 </div>
                             </div>
                             
-                            <div class="funnel-layer pending-layer">
-                                <div class="layer-bar" id="layer-pending-bar" style="width: 80%;">
-                                    <span class="layer-title"><i class="fa-solid fa-clock"></i> Bekleyen Fırsatlar</span>
-                                    <span class="layer-value" id="layer-pending-val">0 Müşteri (0%)</span>
+                            <div class="funnel-connector"><i class="fa-solid fa-chevron-down"></i></div>
+                            
+                            <!-- Layer 2: Samples -->
+                            <div class="funnel-layer-modern layer-l2">
+                                <div class="funnel-layer-content">
+                                    <span class="funnel-layer-title"><i class="fa-solid fa-box-open"></i> Numune Verilenler</span>
+                                    <span class="funnel-layer-val" id="funnel-val-samples">0 Müşteri (0%)</span>
                                 </div>
                             </div>
                             
-                            <div class="funnel-layer negative-layer">
-                                <div class="layer-bar" id="layer-negative-bar" style="width: 50%;">
-                                    <span class="layer-title"><i class="fa-solid fa-circle-xmark"></i> Olumsuz Sonuçlanan</span>
-                                    <span class="layer-value" id="layer-negative-val">0 Müşteri (0%)</span>
+                            <div class="funnel-connector"><i class="fa-solid fa-chevron-down"></i></div>
+                            
+                            <!-- Layer 3: Pending Deals -->
+                            <div class="funnel-layer-modern layer-l3">
+                                <div class="funnel-layer-content">
+                                    <span class="funnel-layer-title"><i class="fa-solid fa-clock"></i> Bekleyen Fırsatlar</span>
+                                    <span class="funnel-layer-val" id="funnel-val-pending">0 Müşteri (0%)</span>
                                 </div>
                             </div>
+                            
+                            <div class="funnel-connector"><i class="fa-solid fa-chevron-down"></i></div>
+                            
+                            <!-- Layer 4: Active Customers (Closed Won) -->
+                            <div class="funnel-layer-modern layer-l4">
+                                <div class="funnel-layer-content">
+                                    <span class="funnel-layer-title"><i class="fa-solid fa-circle-check"></i> Aktif Müşteriler (Kazanılan)</span>
+                                    <span class="funnel-layer-val" id="funnel-val-active">0 Müşteri (0%)</span>
+                                </div>
+                            </div>
+                            
                         </div>
-                    </div>
-                    
-                    <div class="funnel-info-box">
-                        <i class="fa-solid fa-circle-info"></i>
-                        <span><strong>Dönüşüm Oranı Analizi:</strong> Aktif müşteri kategorisindeki firmalar satışa dönüştürülmüş iş fırsatlarını gösterir. Beklemedekiler ise takibi devam eden potansiyel müşterileri temsil eder.</span>
+
+                        <!-- Right Column: Analytics & recommendations -->
+                        <div>
+                            
+                            <!-- Progress Circles Grid -->
+                            <div class="metric-card-grid">
+                                
+                                <!-- Metric 1: Lead to Sample Rate -->
+                                <div class="metric-card-modern">
+                                    <div class="metric-card-info">
+                                        <span class="metric-card-lbl">Numune Dağıtım Oranı</span>
+                                        <span class="metric-card-title">Portföy / Numune</span>
+                                    </div>
+                                    <div class="metric-progress-circle">
+                                        <svg>
+                                            <circle class="circle-bg" cx="25" cy="25" r="20"></circle>
+                                            <circle class="circle-bar" id="circle-bar-samples" cx="25" cy="25" r="20" stroke-dasharray="125.6" stroke-dashoffset="125.6"></circle>
+                                        </svg>
+                                        <span class="percent-text" id="percent-txt-samples">0%</span>
+                                    </div>
+                                </div>
+
+                                <!-- Metric 2: Sample to Deal Win Rate -->
+                                <div class="metric-card-modern">
+                                    <div class="metric-card-info">
+                                        <span class="metric-card-lbl">Teklif Kazanma Oranı</span>
+                                        <span class="metric-card-title">Numune -> Aktif Satış</span>
+                                    </div>
+                                    <div class="metric-progress-circle">
+                                        <svg>
+                                            <circle class="circle-bg" cx="25" cy="25" r="20"></circle>
+                                            <circle class="circle-bar" id="circle-bar-won" cx="25" cy="25" r="20" stroke-dasharray="125.6" stroke-dashoffset="125.6"></circle>
+                                        </svg>
+                                        <span class="percent-text" id="percent-txt-won">0%</span>
+                                    </div>
+                                </div>
+
+                                <!-- Metric 3: Overall Conversion Rate -->
+                                <div class="metric-card-modern">
+                                    <div class="metric-card-info">
+                                        <span class="metric-card-lbl">Genel Satış Başarısı</span>
+                                        <span class="metric-card-title">Toplam Başarı Oranı</span>
+                                    </div>
+                                    <div class="metric-progress-circle">
+                                        <svg>
+                                            <circle class="circle-bg" cx="25" cy="25" r="20"></circle>
+                                            <circle class="circle-bar" id="circle-bar-overall" cx="25" cy="25" r="20" stroke-dasharray="125.6" stroke-dashoffset="125.6"></circle>
+                                        </svg>
+                                        <span class="percent-text" id="percent-txt-overall">0%</span>
+                                    </div>
+                                </div>
+                                
+                            </div>
+
+                            <!-- AI Assistant insights -->
+                            <div class="ai-insight-box">
+                                <div class="ai-insight-header">
+                                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                                    <span>Pati Raw Satış Asistanı Analizi</span>
+                                </div>
+                                <div class="ai-insight-text" id="ai-funnel-insight">
+                                    Analiz yapılıyor, lütfen bekleyin...
+                                </div>
+                                <div class="ai-insight-action">
+                                    <i class="fa-solid fa-circle-info"></i>
+                                    <span>Öneriler müşteri ve numune istatistiklerine göre dinamik üretilir.</span>
+                                </div>
+                            </div>
+
+                        </div>
+                        
                     </div>
                 </div>
             </div>

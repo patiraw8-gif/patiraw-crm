@@ -787,18 +787,53 @@ window.filterRecallList = function(filterType) {
 // ==========================================
 function buildConversionFunnel() {
     const total = customers.length;
-    const active = customers.filter(c => c.status === "Aktif").length;
+    const samples = customers.filter(c => c.sampleGiven).length;
     const pending = customers.filter(c => c.status === "Beklemede").length;
-    const negative = customers.filter(c => c.status === "Olumsuz").length;
-    const aPct = total > 0 ? Math.round((active / total) * 100) : 0;
-    const pPct = total > 0 ? Math.round((pending / total) * 100) : 0;
-    const nPct = total > 0 ? Math.round((negative / total) * 100) : 0;
-    const bA = document.getElementById("layer-active-bar"); if (bA) bA.style.width = `${Math.max(aPct, 15)}%`;
-    const bP = document.getElementById("layer-pending-bar"); if (bP) bP.style.width = `${Math.max(pPct, 15)}%`;
-    const bN = document.getElementById("layer-negative-bar"); if (bN) bN.style.width = `${Math.max(nPct, 15)}%`;
-    const vA = document.getElementById("layer-active-val"); if (vA) vA.textContent = `${active} Müşteri (${aPct}%)`;
-    const vP = document.getElementById("layer-pending-val"); if (vP) vP.textContent = `${pending} Müşteri (${pPct}%)`;
-    const vN = document.getElementById("layer-negative-val"); if (vN) vN.textContent = `${negative} Müşteri (${nPct}%)`;
+    const active = customers.filter(c => c.status === "Aktif").length;
+
+    const sampleRate = total > 0 ? (samples / total) * 100 : 0;
+    const pendingRate = total > 0 ? (pending / total) * 100 : 0;
+    const activeRate = total > 0 ? (active / total) * 100 : 0;
+
+    // Left Column Visuals
+    const tVal = document.getElementById("funnel-val-total"); if (tVal) tVal.textContent = `${total} Müşteri`;
+    const sVal = document.getElementById("funnel-val-samples"); if (sVal) sVal.textContent = `${samples} Müşteri (${sampleRate.toFixed(0)}%)`;
+    const pVal = document.getElementById("funnel-val-pending"); if (pVal) pVal.textContent = `${pending} Müşteri (${pendingRate.toFixed(0)}%)`;
+    const aVal = document.getElementById("funnel-val-active"); if (aVal) aVal.textContent = `${active} Müşteri (${activeRate.toFixed(0)}%)`;
+
+    // Conversion metrics calculation
+    const wonRate = samples > 0 ? (customers.filter(c => c.sampleGiven && c.status === "Aktif").length / samples) * 100 : 0;
+    const overallRate = total > 0 ? (active / total) * 100 : 0;
+
+    // Circle 1: Sample Rate
+    const txtSamples = document.getElementById("percent-txt-samples"); if (txtSamples) txtSamples.textContent = `${sampleRate.toFixed(0)}%`;
+    const barSamples = document.getElementById("circle-bar-samples"); if (barSamples) barSamples.style.strokeDashoffset = 125.6 - (125.6 * sampleRate / 100);
+
+    // Circle 2: Offer Won Rate (Sample to Active conversion)
+    const txtWon = document.getElementById("percent-txt-won"); if (txtWon) txtWon.textContent = `${wonRate.toFixed(0)}%`;
+    const barWon = document.getElementById("circle-bar-won"); if (barWon) barWon.style.strokeDashoffset = 125.6 - (125.6 * wonRate / 100);
+
+    // Circle 3: Overall success rate
+    const txtOverall = document.getElementById("percent-txt-overall"); if (txtOverall) txtOverall.textContent = `${overallRate.toFixed(0)}%`;
+    const barOverall = document.getElementById("circle-bar-overall"); if (barOverall) barOverall.style.strokeDashoffset = 125.6 - (125.6 * overallRate / 100);
+
+    // Dynamic AI Insight Recommendation
+    const insightEl = document.getElementById("ai-funnel-insight");
+    if (insightEl) {
+        let advice = "";
+        if (total === 0) {
+            advice = "Sistemde kayıtlı müşteri bulunmamaktadır. Başlamak için Müşteri Listesi sekmesinden yeni bir kayıt oluşturun.";
+        } else if (sampleRate < 40) {
+            advice = `<strong>Düşük Numune Dağıtımı (%${sampleRate.toFixed(0)}):</strong> Kayıtlı müşterilerinizin yarısından azına numune ulaşmış durumda. Pati Raw'ın doğallığını ve kalitesini deneyimlemeleri için numune dağıtım faaliyetlerini artırın. Bu, satış hacminizi doğrudan yukarı taşıyacaktır.`;
+        } else if (wonRate < 50) {
+            advice = `<strong>Teklif Dönüşüm Uyarısı (%${wonRate.toFixed(0)}):</strong> Numune teslim edilen müşterilerin aktif satın almaya dönüşme oranı hedeflerin altında. Numune teslim sonrası geri aramaları hızlandırın, müşterilerden geri bildirim alın ve fiyat veya gramaj tekliflerini optimize etmeyi değerlendirin.`;
+        } else if (pending > active) {
+            advice = `<strong>Yüksek Bekleyen Fırsat Oranı:</strong> Havuzunuzda aktif müşteriden daha fazla bekleyen fırsat (%${pendingRate.toFixed(0)}) var. Bu müşteriler kararsız veya ek teklif bekliyor olabilir. Arama Planlayıcı'yı kullanarak bugün hepsiyle tekrar iletişime geçin ve süreci kapatın.`;
+        } else {
+            advice = `<strong>Sağlıklı Dönüşüm Akışı:</strong> Tebrikler! Genel satış başarı oranınız %${overallRate.toFixed(0)} ile gayet güçlü bir seviyede. Numune alan müşterilerin kazanılma oranı (%${wonRate.toFixed(0)}) çok iyi. Mevcut satış akışını koruyup yeni kitlelere numune ulaştırmaya odaklanın.`;
+        }
+        insightEl.innerHTML = advice;
+    }
 }
 
 // ==========================================
