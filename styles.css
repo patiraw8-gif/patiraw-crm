@@ -1,5 +1,5 @@
 /* ==========================================
-   PATI RAW CRM - PREMIUM CORPORATE STYLES
+   PATI RAW CRM - PREMIUM CORPORATE STYLES (v2.1.0)
    ========================================== */
 
 /* Design Tokens & Variables */
@@ -59,6 +59,77 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ==========================================
+   AUTHENTICATION / LOGIN PAGE OVERLAY
+   ========================================== */
+.login-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(135deg, #111827 0%, #1f2937 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    transition: opacity var(--transition-normal);
+}
+
+.login-overlay.hide {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.login-card {
+    background-color: var(--card-bg);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    width: 100%;
+    max-width: 420px;
+    padding: 40px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.login-card-header {
+    text-align: center;
+    border-bottom: 1.5px solid var(--border-color);
+    padding-bottom: 20px;
+}
+
+.login-card-header .logo-main {
+    justify-content: center;
+}
+
+.login-card-header .logo-sub {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--text-muted);
+    font-weight: 800;
+}
+
+.login-btn {
+    display: flex;
+    justify-content: center;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 12px rgba(255, 106, 0, 0.3);
+}
+
+.login-card-footer {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: center;
+    line-height: 1.4;
+    background-color: var(--light-bg);
+    padding: 10px;
+    border-radius: var(--radius-sm);
+    border: 1px dashed var(--border-color);
+}
+
+/* ==========================================
    DASHBOARD WRAPPER & SIDEBAR
    ========================================== */
 .dashboard-wrapper {
@@ -82,7 +153,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .sidebar-brand {
-    margin-bottom: 40px;
+    margin-bottom: 30px;
 }
 
 .logo-main {
@@ -159,6 +230,11 @@ h1, h2, h3, h4, h5, h6 {
     color: white;
     background-color: var(--primary);
     box-shadow: 0 4px 12px rgba(255, 106, 0, 0.25);
+}
+
+.logout-btn:hover {
+    background-color: rgba(239, 68, 68, 0.15) !important;
+    color: #fca5a5 !important;
 }
 
 .sidebar-footer {

@@ -19,6 +19,35 @@
 </head>
 <body>
 
+    <!-- LOGIN PAGE OVERLAY -->
+    <div class="login-overlay" id="login-overlay">
+        <div class="login-card">
+            <div class="login-card-header">
+                <div class="logo-main">
+                    <span class="logo-pati">Pati</span><span class="logo-raw">Raw</span>
+                    <i class="fa-solid fa-paw logo-icon"></i>
+                </div>
+                <div class="logo-sub">YÖNETİCİ GİRİŞİ</div>
+            </div>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="login-email">Kullanıcı Adı veya E-posta</label>
+                    <input type="text" id="login-email" required placeholder="Örn: admin@patiraw.com">
+                </div>
+                <div class="form-group" style="margin-top: 14px;">
+                    <label for="login-password">Şifre</label>
+                    <input type="password" id="login-password" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn btn-primary login-btn" style="margin-top: 24px; width: 100%; height: 44px; font-size: 14px;">
+                    Giriş Yap <i class="fa-solid fa-right-to-bracket"></i>
+                </button>
+            </form>
+            <div class="login-card-footer" id="login-footer-text">
+                Pati Raw CRM yerel modda çalışıyor. Varsayılan kullanıcı adı: admin, şifre: patiraw2026
+            </div>
+        </div>
+    </div>
+
     <div class="dashboard-wrapper">
         
         <!-- SIDEBAR NAVIGATION -->
@@ -60,11 +89,16 @@
                     <i class="fa-solid fa-gears"></i>
                     <span>Bağlantı Ayarları</span>
                 </a>
+                
+                <a href="#" class="menu-item logout-btn" id="btn-logout" style="margin-top: auto; color: #fca5a5; background-color: rgba(239, 68, 68, 0.05);">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span>Güvenli Çıkış</span>
+                </a>
             </nav>
             
             <div class="sidebar-footer">
                 <p>© 2026 Pati Raw CRM</p>
-                <span>v2.0.0 Pro</span>
+                <span>v2.1.0 Pro</span>
             </div>
         </aside>
 
@@ -215,9 +249,14 @@
             <!-- TAB CONTENT 3: TIMELINE -->
             <div class="tab-pane" id="tab-timeline">
                 <div class="dashboard-content">
-                    <div class="section-header">
-                        <h2>Görüşme ve İletişim Zaman Tüneli</h2>
-                        <p>Son görüşme yapılan firmaların dikey akış geçmişi.</p>
+                    <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                        <div>
+                            <h2>Görüşme ve İletişim Zaman Tüneli</h2>
+                            <p>Son görüşme yapılan firmaların dikey akış geçmişi.</p>
+                        </div>
+                        <button class="btn btn-primary" id="btn-add-meeting">
+                            <i class="fa-solid fa-comment-medical"></i> Yeni Görüşme Notu Ekle
+                        </button>
                     </div>
                     <div class="timeline" id="meetings-timeline">
                         <!-- Dynamic Timeline -->
@@ -228,9 +267,14 @@
             <!-- TAB CONTENT 4: SAMPLES -->
             <div class="tab-pane" id="tab-samples">
                 <div class="dashboard-content">
-                    <div class="section-header">
-                        <h2>Numune ve Teklif Süreçleri</h2>
-                        <p>İşletmelerin numune durumlarına göre dağılımı ve bekleyen tüketim potansiyeli.</p>
+                    <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                        <div>
+                            <h2>Numune ve Teklif Süreçleri</h2>
+                            <p>İşletmelerin numune durumlarına göre dağılımı ve bekleyen tüketim potansiyeli.</p>
+                        </div>
+                        <button class="btn btn-primary" id="btn-add-sample-delivery">
+                            <i class="fa-solid fa-truck-ramp-box"></i> Yeni Numune Dağıtımı Başlat
+                        </button>
                     </div>
                     
                     <div class="samples-stats-grid">
@@ -256,6 +300,7 @@
                                     <th>ŞEHİR</th>
                                     <th class="text-right">TÜKETİM (KG)</th>
                                     <th class="text-center">NUMUNE DURUMU</th>
+                                    <th class="text-center">NUMUNE İŞLEMİ</th>
                                 </tr>
                             </thead>
                             <tbody id="sample-table-body">
@@ -269,9 +314,14 @@
             <!-- TAB CONTENT 5: PLANNER -->
             <div class="tab-pane" id="tab-planner">
                 <div class="dashboard-content">
-                    <div class="section-header">
-                        <h2>Geri Arama Planlayıcı</h2>
-                        <p>Tekrar aranacak müşteriler ve zamanı geçmiş takipler.</p>
+                    <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                        <div>
+                            <h2>Geri Arama Planlayıcı</h2>
+                            <p>Tekrar aranacak müşteriler ve zamanı geçmiş takipler.</p>
+                        </div>
+                        <button class="btn btn-primary" id="btn-add-planner-call">
+                            <i class="fa-solid fa-calendar-plus"></i> Yeni Arama Planla
+                        </button>
                     </div>
 
                     <div class="planner-toolbar">
@@ -288,6 +338,7 @@
                                     <th>YETKİLİ / TELEFON</th>
                                     <th class="text-center">GERİ ARAMA TARİHİ</th>
                                     <th class="text-center">ÖNCELİK DURUMU</th>
+                                    <th class="text-center">HIZLI AKSİYON</th>
                                 </tr>
                             </thead>
                             <tbody id="recall-table-body">
@@ -429,6 +480,11 @@
                             <option value="Olumsuz">Olumsuz</option>
                         </select>
                     </div>
+
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label for="input-last-note">Son Görüşme Notu</label>
+                        <textarea id="input-last-note" rows="3" placeholder="Bu müşteriyle yapılan son görüşmenin detaylarını yazın..." style="padding: 10px; border: 1.5px solid var(--border-color); border-radius: var(--radius-md); font-family: inherit; font-size: 13.5px; resize: vertical;"></textarea>
+                    </div>
                 </div>
                 
                 <div class="form-group-checkbox">
@@ -442,6 +498,44 @@
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeCustomerModal()">İptal</button>
                     <button type="submit" class="btn btn-primary" id="btn-save-customer">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- QUICK MEETING MODAL -->
+    <div class="modal-overlay" id="quick-meeting-modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>Görüşme Notu Kaydet</h3>
+                <button class="close-btn" onclick="closeQuickMeetingModal()">&times;</button>
+            </div>
+            <form id="quick-meeting-form">
+                <div class="form-group" style="margin: 16px 24px;">
+                    <label for="meeting-customer-id">Müşteri Seçin <span class="required">*</span></label>
+                    <select id="meeting-customer-id" required style="width: 100%;">
+                        <!-- Dynamic Options -->
+                    </select>
+                </div>
+                
+                <div class="form-group" style="margin: 16px 24px;">
+                    <label for="meeting-date">Görüşme Tarihi <span class="required">*</span></label>
+                    <input type="date" id="meeting-date" required style="width: 100%;">
+                </div>
+
+                <div class="form-group" style="margin: 16px 24px;">
+                    <label for="meeting-recall-date">Tekrar Aranacak Tarih</label>
+                    <input type="date" id="meeting-recall-date" style="width: 100%;">
+                </div>
+                
+                <div class="form-group" style="margin: 16px 24px;">
+                    <label for="meeting-note">Görüşme Notu <span class="required">*</span></label>
+                    <textarea id="meeting-note" required rows="4" placeholder="Görüşme detaylarını, konuşulan önemli konuları yazın..." style="width: 100%; padding: 10px; border: 1.5px solid var(--border-color); border-radius: var(--radius-md); font-family: inherit; font-size: 13.5px; resize: vertical;"></textarea>
+                </div>
+                
+                <div class="form-actions" style="padding: 16px 24px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeQuickMeetingModal()">İptal</button>
+                    <button type="submit" class="btn btn-primary" id="btn-save-meeting">Kaydet</button>
                 </div>
             </form>
         </div>
