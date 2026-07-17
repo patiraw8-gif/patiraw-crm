@@ -32,16 +32,16 @@ CREATE INDEX IF NOT EXISTS idx_customers_status ON customers(status);
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Herkes veri okuyabilsin" ON customers;
-CREATE POLICY "Herkes veri okuyabilsin" ON customers FOR SELECT TO anon USING (true);
+CREATE POLICY "Sadece giris yapanlar okuyabilsin" ON customers FOR SELECT TO authenticated USING (true);
 
 DROP POLICY IF EXISTS "Herkes veri ekleyebilsin" ON customers;
-CREATE POLICY "Herkes veri ekleyebilsin" ON customers FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "Sadece giris yapanlar ekleyebilsin" ON customers FOR INSERT TO authenticated WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Herkes veri güncelleyebilsin" ON customers;
-CREATE POLICY "Herkes veri güncelleyebilsin" ON customers FOR UPDATE TO anon USING (true);
+CREATE POLICY "Sadece giris yapanlar güncelleyebilsin" ON customers FOR UPDATE TO authenticated USING (true);
 
 DROP POLICY IF EXISTS "Herkes veri silebilsin" ON customers;
-CREATE POLICY "Herkes veri silebilsin" ON customers FOR DELETE TO anon USING (true);
+CREATE POLICY "Sadece giris yapanlar silebilsin" ON customers FOR DELETE TO authenticated USING (true);
 
 
 -- 2. Siparişler (Orders) Tablosunu Oluştur
@@ -60,16 +60,16 @@ CREATE TABLE IF NOT EXISTS orders (
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Herkes siparis okuyabilsin" ON orders;
-CREATE POLICY "Herkes siparis okuyabilsin" ON orders FOR SELECT TO anon USING (true);
+CREATE POLICY "Sadece giris yapanlar siparis okuyabilsin" ON orders FOR SELECT TO authenticated USING (true);
 
 DROP POLICY IF EXISTS "Herkes siparis ekleyebilsin" ON orders;
-CREATE POLICY "Herkes siparis ekleyebilsin" ON orders FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "Sadece giris yapanlar siparis ekleyebilsin" ON orders FOR INSERT TO authenticated WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Herkes siparis güncelleyebilsin" ON orders;
-CREATE POLICY "Herkes siparis güncelleyebilsin" ON orders FOR UPDATE TO anon USING (true);
+CREATE POLICY "Sadece giris yapanlar siparis güncelleyebilsin" ON orders FOR UPDATE TO authenticated USING (true);
 
 DROP POLICY IF EXISTS "Herkes siparis silebilsin" ON orders;
-CREATE POLICY "Herkes siparis silebilsin" ON orders FOR DELETE TO anon USING (true);
+CREATE POLICY "Sadece giris yapanlar siparis silebilsin" ON orders FOR DELETE TO authenticated USING (true);
 
 
 -- 3. Görüşme Notları (Meeting Logs) Tablosunu Oluştur
@@ -86,16 +86,16 @@ CREATE TABLE IF NOT EXISTS meeting_logs (
 ALTER TABLE meeting_logs ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Herkes not okuyabilsin" ON meeting_logs;
-CREATE POLICY "Herkes not okuyabilsin" ON meeting_logs FOR SELECT TO anon USING (true);
+CREATE POLICY "Sadece giris yapanlar not okuyabilsin" ON meeting_logs FOR SELECT TO authenticated USING (true);
 
 DROP POLICY IF EXISTS "Herkes not ekleyebilsin" ON meeting_logs;
-CREATE POLICY "Herkes not ekleyebilsin" ON meeting_logs FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "Sadece giris yapanlar not ekleyebilsin" ON meeting_logs FOR INSERT TO authenticated WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Herkes not güncelleyebilsin" ON meeting_logs;
-CREATE POLICY "Herkes not güncelleyebilsin" ON meeting_logs FOR UPDATE TO anon USING (true);
+CREATE POLICY "Sadece giris yapanlar not güncelleyebilsin" ON meeting_logs FOR UPDATE TO authenticated USING (true);
 
 DROP POLICY IF EXISTS "Herkes not silebilsin" ON meeting_logs;
-CREATE POLICY "Herkes not silebilsin" ON meeting_logs FOR DELETE TO anon USING (true);
+CREATE POLICY "Sadece giris yapanlar not silebilsin" ON meeting_logs FOR DELETE TO authenticated USING (true);
 
 
 -- 4. Geri Dönüşüm Kutusu (Trash Items) Tablosunu Oluştur
@@ -111,13 +111,13 @@ CREATE TABLE IF NOT EXISTS trash_items (
 ALTER TABLE trash_items ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Herkes cop okuyabilsin" ON trash_items;
-CREATE POLICY "Herkes cop okuyabilsin" ON trash_items FOR SELECT TO anon USING (true);
+CREATE POLICY "Sadece giris yapanlar cop okuyabilsin" ON trash_items FOR SELECT TO authenticated USING (true);
 
 DROP POLICY IF EXISTS "Herkes cop ekleyebilsin" ON trash_items;
-CREATE POLICY "Herkes cop ekleyebilsin" ON trash_items FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "Sadece giris yapanlar cop ekleyebilsin" ON trash_items FOR INSERT TO authenticated WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Herkes cop güncelleyebilsin" ON trash_items;
-CREATE POLICY "Herkes cop güncelleyebilsin" ON trash_items FOR UPDATE TO anon USING (true);
+CREATE POLICY "Sadece giris yapanlar cop güncelleyebilsin" ON trash_items FOR UPDATE TO authenticated USING (true);
 
 DROP POLICY IF EXISTS "Herkes cop silebilsin" ON trash_items;
-CREATE POLICY "Herkes cop silebilsin" ON trash_items FOR DELETE TO anon USING (true);
+CREATE POLICY "Sadece giris yapanlar cop silebilsin" ON trash_items FOR DELETE TO authenticated USING (true);
