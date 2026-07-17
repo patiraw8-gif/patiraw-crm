@@ -248,6 +248,7 @@ async function fetchAllData() {
                 lastContactNote: dbCust.last_contact_note || "",
                 tags: dbCust.tags || ""
             }));
+            saveLocalData(); // Yerel yedeği sürekli güncel tutalım
         } catch (error) {
             console.error("Supabase fetch failed:", error);
             showToast("Supabase bağlantı hatası! Yerel hafızaya dönüldü.", "error");
@@ -1418,6 +1419,7 @@ async function fetchOrders() {
                 status: dbOrder.status || 'Ödendi',
                 orderDate: dbOrder.order_date
             }));
+            saveLocalOrders(); // Yerel yedeği sürekli güncel tutalım
         } catch (error) {
             console.error("Supabase orders fetch error:", error);
             loadLocalOrders();
@@ -1649,6 +1651,7 @@ async function fetchMeetingLogs() {
                 recallDate: dbLog.recall_date,
                 note: dbLog.note
             }));
+            saveLocalMeetings(); // Yerel yedeği sürekli güncel tutalım
         } catch (error) {
             console.error("Supabase meeting logs fetch error:", error);
             loadLocalMeetings();
