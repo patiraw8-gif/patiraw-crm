@@ -16,6 +16,7 @@ const defaultCustomers = [
 // 2. Application State
 let customers = [];
 let orders = [];
+let meetingLogs = [];
 let deleteTargetId = null;
 let deleteOrderTargetId = null;
 let currentSort = { key: null, direction: 'asc' };
@@ -256,6 +257,7 @@ async function fetchAllData() {
         loadLocalData();
     }
     await fetchOrders();
+    await fetchMeetingLogs();
     updateNotifications();
     populateCityFilter();
     renderTable();
@@ -330,6 +332,9 @@ function setupEventListeners() {
         
         const orderMod = document.getElementById("order-modal");
         if (e.target === orderMod) closeOrderModal();
+
+        const dossierMod = document.getElementById("customer-dossier-modal");
+        if (e.target === dossierMod) closeDossierModal();
         
         // Close notification dropdown when clicked outside
         const bellDropdown = document.getElementById("bell-dropdown");
@@ -489,7 +494,10 @@ function renderTable() {
         }
 
         row.innerHTML = `
-            <td style="font-weight: 700;">${c.businessName} ${tagsHtml}</td>
+            <td style="font-weight: 700;">
+                <span class="dossier-link" onclick="openDossierModal('${c.id}')" style="cursor: pointer; color: var(--primary); text-decoration: underline;">${c.businessName}</span>
+                ${tagsHtml}
+            </td>
             <td>${c.contactPerson}</td>
             <td>${c.phone}</td>
             <td>${c.city}</td>
@@ -510,7 +518,10 @@ function renderTable() {
             card.className = "customer-mobile-card";
             card.innerHTML = `
                 <div class="mobile-card-header">
-                    <div class="mobile-card-title">${c.businessName} ${tagsHtml}</div>
+                    <div class="mobile-card-title">
+                        <span class="dossier-link" onclick="openDossierModal('${c.id}')" style="cursor: pointer; color: var(--primary); text-decoration: underline;">${c.businessName}</span>
+                        ${tagsHtml}
+                    </div>
                     <span class="status-badge ${statusClass}">${c.status}</span>
                 </div>
                 <div class="mobile-card-body">
@@ -687,12 +698,24 @@ async function handleQuickMeetingSubmit(e) {
     const note = document.getElementById("meeting-note").value.trim();
     if (!custId) { showToast("Lütfen bir müşteri seçin.", "error"); return; }
 
+    const logId = Date.now().toString();
+
     if (isSupabaseActive && supabaseClient) {
         try {
             const updateData = { last_contact_date: meetingDate, last_contact_note: note };
             if (recallDate) updateData.recall_date = recallDate;
-            const { error } = await supabaseClient.from("customers").update(updateData).eq("id", custId);
-            if (error) throw error;
+            const { error: custErr } = await supabaseClient.from("customers").update(updateData).eq("id", custId);
+            if (custErr) throw custErr;
+
+            const { error: logErr } = await supabaseClient.from("meeting_logs").insert({
+                id: logId,
+                customer_id: custId,
+                meeting_date: meetingDate,
+                recall_date: recallDate,
+                note: note
+            });
+            if (logErr) throw logErr;
+
             showToast("Görüşme notu kaydedildi.");
             await fetchAllData();
         } catch (error) { console.error("Meeting save error:", error); showToast("Not kaydedilemedi!", "error"); }
@@ -702,6 +725,16 @@ async function handleQuickMeetingSubmit(e) {
             customers[idx].lastContactDate = meetingDate;
             customers[idx].lastContactNote = note;
             if (recallDate) customers[idx].recallDate = recallDate;
+            
+            meetingLogs.push({
+                id: logId,
+                customerId: custId,
+                meetingDate: meetingDate,
+                recallDate: recallDate,
+                note: note
+            });
+            saveLocalMeetings();
+
             saveLocalData(); renderTable(); updateStats(); refreshAllDashboardPanels();
             showToast("Görüşme notu kaydedildi.");
         }
@@ -731,16 +764,45 @@ window.quickToggleSample = async function(id, newState) {
 // ==========================================
 window.quickCallDone = async function(id) {
     const todayStr = new Date().toISOString().slice(0, 10);
+    const logId = Date.now().toString();
+    const noteText = "Planlı geri arama yapıldı.";
+    
     if (isSupabaseActive && supabaseClient) {
         try {
-            const { error } = await supabaseClient.from("customers").update({ last_contact_date: todayStr, recall_date: null, last_contact_note: "Planlı geri arama yapıldı." }).eq("id", id);
-            if (error) throw error;
+            const { error: custErr } = await supabaseClient.from("customers").update({ last_contact_date: todayStr, recall_date: null, last_contact_note: noteText }).eq("id", id);
+            if (custErr) throw custErr;
+
+            const { error: logErr } = await supabaseClient.from("meeting_logs").insert({
+                id: logId,
+                customer_id: id,
+                meeting_date: todayStr,
+                recall_date: null,
+                note: noteText
+            });
+            if (logErr) throw logErr;
+
             showToast("Arama tamamlandı olarak kaydedildi.");
             await fetchAllData();
         } catch (error) { showToast("İşlem başarısız!", "error"); }
     } else {
         const idx = customers.findIndex(c => c.id === id);
-        if (idx !== -1) { customers[idx].lastContactDate = todayStr; customers[idx].recallDate = null; customers[idx].lastContactNote = "Planlı geri arama yapıldı."; saveLocalData(); renderTable(); updateStats(); refreshAllDashboardPanels(); showToast("Arama tamamlandı."); }
+        if (idx !== -1) {
+            customers[idx].lastContactDate = todayStr;
+            customers[idx].recallDate = null;
+            customers[idx].lastContactNote = noteText;
+            
+            meetingLogs.push({
+                id: logId,
+                customerId: id,
+                meetingDate: todayStr,
+                recallDate: null,
+                note: noteText
+            });
+            saveLocalMeetings();
+
+            saveLocalData(); renderTable(); updateStats(); refreshAllDashboardPanels();
+            showToast("Arama tamamlandı.");
+        }
     }
 };
 
@@ -1525,4 +1587,185 @@ window.deleteOrderClick = async function(id) {
         addLog("Sipariş kaydı silindi (Yerel).");
         await fetchAllData();
     }
+};
+
+// ==========================================
+// 24. DOSSIER LOGS DATABASE SYNC (GÖRÜŞME GEÇMİŞİ VERİTABANI)
+// ==========================================
+async function fetchMeetingLogs() {
+    if (isSupabaseActive && supabaseClient) {
+        try {
+            const { data, error } = await supabaseClient.from("meeting_logs").select("*").order("meeting_date", { ascending: false });
+            if (error) throw error;
+            meetingLogs = data.map(dbLog => ({
+                id: dbLog.id,
+                customerId: dbLog.customer_id,
+                meetingDate: dbLog.meeting_date,
+                recallDate: dbLog.recall_date,
+                note: dbLog.note
+            }));
+        } catch (error) {
+            console.error("Supabase meeting logs fetch error:", error);
+            loadLocalMeetings();
+        }
+    } else {
+        loadLocalMeetings();
+    }
+
+    // Geriye dönük uyumluluk (Veritabanında hiç not yoksa, mevcut müşteri notlarını aktar)
+    if (meetingLogs.length === 0 && customers.length > 0) {
+        customers.forEach(c => {
+            if (c.lastContactNote || c.lastContactDate) {
+                meetingLogs.push({
+                    id: `seed-${c.id}`,
+                    customerId: c.id,
+                    meetingDate: c.lastContactDate || new Date().toISOString().slice(0, 10),
+                    recallDate: c.recallDate || null,
+                    note: c.lastContactNote || "Müşteri kartından aktarılan görüşme notu."
+                });
+            }
+        });
+        saveLocalMeetings();
+    }
+}
+
+function loadLocalMeetings() {
+    const saved = localStorage.getItem("pati_raw_crm_meetings");
+    if (saved) {
+        try { meetingLogs = JSON.parse(saved); } catch (e) { meetingLogs = []; }
+    } else {
+        meetingLogs = [];
+    }
+}
+
+function saveLocalMeetings() {
+    localStorage.setItem("pati_raw_crm_meetings", JSON.stringify(meetingLogs));
+}
+
+// ==========================================
+// 25. CUSTOMER DOSSIER MODAL OPERATIONS (MÜŞTERİ DETAY DOSYASI)
+// ==========================================
+window.openDossierModal = function(customerId) {
+    const customer = customers.find(c => c.id === customerId);
+    if (!customer) return;
+
+    // İşletme Detayları
+    document.getElementById("dossier-biz-name").textContent = customer.businessName;
+    document.getElementById("dossier-contact").textContent = customer.contactPerson || "-";
+    document.getElementById("dossier-phone").textContent = customer.phone || "-";
+    document.getElementById("dossier-city").textContent = customer.city || "-";
+    document.getElementById("dossier-consumption").textContent = `${customer.monthlyConsumption || 0} kg`;
+    
+    // Status Badge
+    const statusClass = customer.status.toLowerCase();
+    const statusBadge = document.getElementById("dossier-status-badge");
+    statusBadge.className = `status-badge ${statusClass}`;
+    statusBadge.textContent = customer.status;
+
+    // Numune Durumu
+    const sampleStatus = document.getElementById("dossier-sample-status");
+    if (customer.sampleGiven) {
+        sampleStatus.innerHTML = '<span style="color:#10b981; font-weight:700;"><i class="fa-solid fa-circle-check"></i> Teslim Edildi</span>';
+    } else {
+        sampleStatus.innerHTML = '<span style="color:#ef4444; font-weight:700;"><i class="fa-solid fa-circle-xmark"></i> Verilmedi</span>';
+    }
+
+    // Etiketler
+    const tagsContainer = document.getElementById("dossier-tags");
+    tagsContainer.innerHTML = "";
+    if (customer.tags) {
+        const tagList = customer.tags.split(",").map(t => t.trim()).filter(t => t.length > 0);
+        tagList.forEach(t => {
+            const pill = document.createElement("span");
+            pill.className = "tag-pill";
+            pill.innerHTML = `<i class="fa-solid fa-tag"></i> ${t}`;
+            tagsContainer.appendChild(pill);
+        });
+    } else {
+        tagsContainer.innerHTML = '<span style="color:var(--text-muted); font-size:11px; font-style:italic;">Etiket bulunmuyor.</span>';
+    }
+
+    // Sipariş İstatistikleri
+    const custOrders = orders.filter(o => o.customerId === customerId);
+    const completedOrders = custOrders.filter(o => o.status !== "İptal");
+    const totalSpent = completedOrders.reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
+
+    document.getElementById("dossier-total-orders").textContent = `${custOrders.length} Sipariş`;
+    document.getElementById("dossier-total-spent").textContent = `${totalSpent.toLocaleString('tr-TR')} ₺`;
+
+    // 1. Görüşme Notları Geçmişi
+    const notesList = document.getElementById("dossier-notes-list");
+    notesList.innerHTML = "";
+    
+    const custNotes = meetingLogs.filter(l => l.customerId === customerId)
+        .sort((a, b) => b.meetingDate.localeCompare(a.meetingDate));
+
+    if (custNotes.length === 0) {
+        notesList.innerHTML = `
+            <div style="text-align:center; padding:20px; color:var(--text-muted); font-size:12.5px;">
+                <i class="fa-solid fa-folder-open" style="font-size:20px; color:var(--border-color); display:block; margin-bottom:6px;"></i>
+                Görüşme kaydı bulunmuyor.
+            </div>`;
+    } else {
+        custNotes.forEach(n => {
+            const noteCard = document.createElement("div");
+            noteCard.style.cssText = "background:#f9fafb; border:1px solid var(--border-color); padding:12px; border-radius:var(--radius-md); font-size:12.5px;";
+            
+            let recallHtml = "";
+            if (n.recallDate) {
+                recallHtml = `<div style="color:var(--status-pending-bg); font-weight:700; font-size:10.5px; margin-top:6px;"><i class="fa-solid fa-calendar-day"></i> Takip Arama Tarihi: ${formatDate(n.recallDate)}</div>`;
+            }
+
+            noteCard.innerHTML = `
+                <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-weight:700; color:var(--dark-charcoal);">
+                    <span><i class="fa-solid fa-clock-rotate-left"></i> Görüşme Tarihi</span>
+                    <span style="color:var(--text-muted);">${formatDate(n.meetingDate)}</span>
+                </div>
+                <div style="line-height:1.4; color:var(--dark-slate); font-weight:500;">${n.note}</div>
+                ${recallHtml}
+            `;
+            notesList.appendChild(noteCard);
+        });
+    }
+
+    // 2. Sipariş Geçmişi
+    const ordersList = document.getElementById("dossier-orders-list");
+    ordersList.innerHTML = "";
+    
+    const custOrdersSorted = custOrders.sort((a, b) => b.orderDate.localeCompare(a.orderDate));
+
+    if (custOrdersSorted.length === 0) {
+        ordersList.innerHTML = `
+            <div style="text-align:center; padding:20px; color:var(--text-muted); font-size:12.5px;">
+                <i class="fa-solid fa-cart-shopping" style="font-size:20px; color:var(--border-color); display:block; margin-bottom:6px;"></i>
+                Sipariş kaydı bulunmuyor.
+            </div>`;
+    } else {
+        custOrdersSorted.forEach(o => {
+            const orderCard = document.createElement("div");
+            orderCard.style.cssText = "background:#f9fafb; border:1px solid var(--border-color); padding:10px; border-radius:var(--radius-md); font-size:12px; display:flex; justify-content:space-between; align-items:center;";
+            
+            let statusColor = "aktif";
+            if (o.status === "Beklemede") statusColor = "beklemede";
+            else if (o.status === "İptal") statusColor = "olumsuz";
+
+            orderCard.innerHTML = `
+                <div>
+                    <strong style="color:var(--dark-slate);">${o.productName}</strong>
+                    <div style="color:var(--text-muted); font-size:10px; margin-top:2px;">${o.quantity} Adet · ${formatDate(o.orderDate)}</div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-weight:700; color:var(--dark-charcoal);">${o.totalAmount.toLocaleString('tr-TR')} ₺</div>
+                    <span class="status-badge ${statusColor}" style="font-size:9px; padding:1px 6px; min-width:auto; margin-top:2px; display:inline-block;">${o.status}</span>
+                </div>
+            `;
+            ordersList.appendChild(orderCard);
+        });
+    }
+
+    document.getElementById("customer-dossier-modal").classList.add("open");
+};
+
+window.closeDossierModal = function() {
+    document.getElementById("customer-dossier-modal").classList.remove("open");
 };

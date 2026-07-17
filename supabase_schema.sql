@@ -70,3 +70,29 @@ CREATE POLICY "Herkes siparis güncelleyebilsin" ON orders FOR UPDATE TO anon US
 
 DROP POLICY IF EXISTS "Herkes siparis silebilsin" ON orders;
 CREATE POLICY "Herkes siparis silebilsin" ON orders FOR DELETE TO anon USING (true);
+
+
+-- 3. Görüşme Notları (Meeting Logs) Tablosunu Oluştur
+CREATE TABLE IF NOT EXISTS meeting_logs (
+    id TEXT PRIMARY KEY,
+    customer_id TEXT REFERENCES customers(id) ON DELETE CASCADE,
+    meeting_date DATE NOT NULL,
+    recall_date DATE,
+    note TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- RLS Politikalarını Etkinleştir
+ALTER TABLE meeting_logs ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Herkes not okuyabilsin" ON meeting_logs;
+CREATE POLICY "Herkes not okuyabilsin" ON meeting_logs FOR SELECT TO anon USING (true);
+
+DROP POLICY IF EXISTS "Herkes not ekleyebilsin" ON meeting_logs;
+CREATE POLICY "Herkes not ekleyebilsin" ON meeting_logs FOR INSERT TO anon WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Herkes not güncelleyebilsin" ON meeting_logs;
+CREATE POLICY "Herkes not güncelleyebilsin" ON meeting_logs FOR UPDATE TO anon USING (true);
+
+DROP POLICY IF EXISTS "Herkes not silebilsin" ON meeting_logs;
+CREATE POLICY "Herkes not silebilsin" ON meeting_logs FOR DELETE TO anon USING (true);

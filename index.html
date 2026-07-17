@@ -886,6 +886,93 @@
         </div>
     </div>
 
+    <!-- CUSTOMER DOSSIER MODAL -->
+    <div class="modal-overlay" id="customer-dossier-modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3>Müşteri Detay Dosyası</h3>
+                <button class="close-btn" onclick="closeDossierModal()">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 24px; display: grid; grid-template-columns: 1fr 1.5fr; gap: 24px; max-height: 70vh; overflow-y: auto;">
+                
+                <!-- Left Column: Business Info -->
+                <div style="border-right: 1px solid var(--border-color); padding-right: 20px; display: flex; flex-direction: column; gap: 16px;">
+                    <div>
+                        <h4 id="dossier-biz-name" style="font-size: 20px; font-weight: 800; color: var(--dark-charcoal); line-height: 1.2;">İşletme Adı</h4>
+                        <div id="dossier-tags" style="margin-top: 6px;"></div>
+                    </div>
+
+                    <div style="font-size: 13px; display: flex; flex-direction: column; gap: 10px; background-color: #f9fafb; padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                        <div>
+                            <span style="color: var(--text-muted); display: block; font-size: 10px; font-weight: 700; text-transform: uppercase;">Yetkili Kişi</span>
+                            <strong id="dossier-contact" style="color: var(--dark-slate); font-size: 14px;">-</strong>
+                        </div>
+                        <div>
+                            <span style="color: var(--text-muted); display: block; font-size: 10px; font-weight: 700; text-transform: uppercase;">Telefon</span>
+                            <strong id="dossier-phone" style="color: var(--dark-slate); font-size: 14px;">-</strong>
+                        </div>
+                        <div>
+                            <span style="color: var(--text-muted); display: block; font-size: 10px; font-weight: 700; text-transform: uppercase;">Şehir</span>
+                            <strong id="dossier-city" style="color: var(--dark-slate); font-size: 14px;">-</strong>
+                        </div>
+                        <div>
+                            <span style="color: var(--text-muted); display: block; font-size: 10px; font-weight: 700; text-transform: uppercase;">Aylık Tüketim</span>
+                            <strong id="dossier-consumption" style="color: var(--dark-slate); font-size: 14px;">-</strong>
+                        </div>
+                    </div>
+
+                    <div style="font-size: 13px; display: flex; flex-direction: column; gap: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed var(--border-color); padding-bottom: 8px;">
+                            <span style="color: var(--text-muted);">Durum:</span>
+                            <span class="status-badge" id="dossier-status-badge">Aktif</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed var(--border-color); padding-bottom: 8px;">
+                            <span style="color: var(--text-muted);">Numune Durumu:</span>
+                            <span id="dossier-sample-status">-</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed var(--border-color); padding-bottom: 8px;">
+                            <span style="color: var(--text-muted);">Toplam Sipariş:</span>
+                            <strong id="dossier-total-orders">0 Sipariş</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: var(--text-muted);">Toplam Ciro:</span>
+                            <strong id="dossier-total-spent" style="color: #10b981;">0 ₺</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: History Lists -->
+                <div style="display: flex; flex-direction: column; gap: 20px;">
+                    
+                    <!-- Meeting Notes Timeline -->
+                    <div>
+                        <h4 style="font-size: 14px; font-weight: 800; border-bottom: 1.5px solid var(--border-color); padding-bottom: 8px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+                            <i class="fa-solid fa-comments" style="color: var(--primary);"></i> Görüşme ve Takip Notları Geçmişi
+                        </h4>
+                        <div id="dossier-notes-list" style="display: flex; flex-direction: column; gap: 10px; max-height: 240px; overflow-y: auto; padding-right: 6px;">
+                            <!-- Dynamic Meeting Notes -->
+                        </div>
+                    </div>
+
+                    <!-- Orders History -->
+                    <div>
+                        <h4 style="font-size: 14px; font-weight: 800; border-bottom: 1.5px solid var(--border-color); padding-bottom: 8px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+                            <i class="fa-solid fa-cart-shopping" style="color: var(--primary);"></i> Satış & Sipariş Geçmişi
+                        </h4>
+                        <div id="dossier-orders-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; padding-right: 6px;">
+                            <!-- Dynamic Orders -->
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+            <div class="form-actions" style="padding: 16px 24px; background-color: #f9fafb; border-top: 1px solid var(--border-color);">
+                <button class="btn btn-secondary" onclick="closeDossierModal()" style="width: 100%;">Dosyayı Kapat</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Confirm Dialog -->
     <div class="modal-overlay" id="confirm-modal">
         <div class="modal-content confirm-content">
