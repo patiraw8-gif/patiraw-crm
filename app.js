@@ -86,7 +86,8 @@ const tabHeaderDetails = {
     "tab-planner": { title: "Arama Planlayıcı", subtitle: "Geri arama tarihleri planlanmış ve gecikmiş müşteriler." },
     "tab-funnel": { title: "Satış Hunisi", subtitle: "Müşteri dönüşüm oranları analizi." },
     "tab-admin": { title: "Yönetici Paneli", subtitle: "Kullanıcı hesap bilgilerini, veri yedekleme süreçlerini ve sistem loglarını yönetin." },
-    "tab-settings": { title: "Bağlantı Ayarları", subtitle: "Supabase bulut veritabanı entegrasyon ayarları." }
+    "tab-settings": { title: "Bağlantı Ayarları", subtitle: "Supabase bulut veritabanı entegrasyon ayarları." },
+    "tab-trash": { title: "Çöp Kutusu", subtitle: "Silinen müşteri ve sipariş kayıtlarını geri yükleyin veya kalıcı olarak silin." }
 };
 
 // ==========================================
@@ -309,6 +310,7 @@ function setupTabNavigation() {
             else if (targetTabId === 'tab-planner') filterRecallList(currentRecallFilter);
             else if (targetTabId === 'tab-funnel') buildConversionFunnel();
             else if (targetTabId === 'tab-admin') renderAdminPanel();
+            else if (targetTabId === 'tab-trash') renderTrashTable();
         });
     });
 }
